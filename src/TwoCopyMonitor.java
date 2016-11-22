@@ -1,16 +1,10 @@
-import java.security.PrivateKey;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicStampedReference;
 
-/**
- * 
- */
 
 /**
  * @author Brice Ngnigha && Abed Haque
  * @param <T> the type to operate on
  */
-
 public class TwoCopyMonitor<T> {
 
 	private final int WR_EVENT = 0;
@@ -22,8 +16,6 @@ public class TwoCopyMonitor<T> {
 	AtomicStampedReference<T> reader;
 
 	
-	private AtomicBoolean cas_event;
-	
 	/**
 	 * @brief TwoCopyMonitor constructor
 	 * @param T initialValue, the initial value of the TwoCopyMonitor
@@ -34,12 +26,10 @@ public class TwoCopyMonitor<T> {
 		T copyA = initialValue;
 		T copyB = initialValue;
 		
-		// Init the atomic references
 		reader = new AtomicStampedReference<T>(copyA, RD_STAMP);
 		writer = new AtomicStampedReference<T>(copyB, WR_STAMP);
-		
-		cas_event = new AtomicBoolean(false);
 	}
+	
 	
 	/**
 	 *  @brief  Allows access of the value only when no cav_event is on
@@ -52,11 +42,16 @@ public class TwoCopyMonitor<T> {
 		
 		while( !reader.compareAndSet(curRdRef, curRdRef, RD_STAMP, RD_STAMP) ) {
 			curRdRef = reader.getReference();
+			Thread.yield();
 		}
 
 		return curRdRef;
 	}
 	
+	/**
+	 *  @brief  Exclusively sets the value of the monitor
+	 *  @param  newVal, the new value to set the monitor
+	 */
 	public void set( T newVal) {
 		
 		T curRdRef = reader.getReference();
@@ -82,6 +77,9 @@ public class TwoCopyMonitor<T> {
 		T readerRef = reader.getReference();
 		T writerRef = writer.getReference();
 		
+		if( readerRef.equals(writerRef) )
+			return;
+		
 		writer.set(readerRef, WR_STAMP);
 		reader.set(writerRef, RD_STAMP);
 	}
@@ -99,7 +97,7 @@ public class TwoCopyMonitor<T> {
 		monitor.set(12);
 		System.out.println("Monitor Value2: " + monitor.get() );
 		
-		int numThreads = 10000;
+		int numThreads = 100;
 		
 		////////////////////////// Single writer
 		Thread writer = new Thread( new Runnable() {
