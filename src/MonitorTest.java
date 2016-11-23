@@ -1,8 +1,6 @@
 import static org.junit.Assert.*;
 import org.junit.*;
 
-import java.util.LinkedList;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
@@ -23,82 +21,27 @@ public class MonitorTest
     }
 
     @Test
-    public void multipleReadersReadCorrectlyAfterInit()
+    public void singleReaderReadsCorrectlyAfterInit()
     {
-        int numThreads = 100;
-        for( int i = 0; i < numThreads; i++) {
-            Thread readers = new Thread( new Runnable() {
-                @Override
-                public void run() {
-                    assertEquals(5, (int)monitor.get());
-                }
-            }
-            );
-
-            readers.start();
-        }
-
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        assertEquals(5, (int)monitor.get());
     }
 
     @Test
-    public void multipleReadersReadCorrectlyAfterWrite()
+    public void multipleReadersSingleWriter()
     {
-        AtomicInteger v = new AtomicInteger(10000);
-
-        // Single Writer
-        Thread writer = new Thread( new Runnable() {
-            @Override
-            public void run() {
-                do
-                {
-                    monitor.set(v.decrementAndGet());
-                }while (v.get() > 0);
-            }
-        }
-        );
-
-        writer.start();
-
-        // Multiple Readers
-        int numThreads = 100;
-        for( int i = 0; i < numThreads; i++) {
-            Thread readers = new Thread( new Runnable() {
-                @Override
-                public void run() {
-                    //System.out.println(Thread.currentThread().getId() + " Monitor:" + monitor.get() );
-                    assertEquals(v.get(), (int)monitor.get());
-                }
-            }
-            );
-
-            readers.start();
-        }
-
-        try {
-            writer.join();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        runTest(1000, 1, 1000);
     }
 
     @Test
-    public void blah()
+    public void multipleReadersMultipleWriters()
     {
         runTest(1000, 1000, 1000);
     }
 
-    private void runTest(int value, int numWriterThreads, int numReaderThreads)
+    private void runTest(int initialWriteValue, int numWriterThreads, int numReaderThreads)
     {
-        AtomicInteger val = new AtomicInteger(value);
+        AtomicInteger val = new AtomicInteger(initialWriteValue);
         AtomicLong timestamp = new AtomicLong(0);
-        //AtomicInteger count1 = new AtomicInteger(0);
-        //AtomicInteger count2 = new AtomicInteger(0);
-        Lock lock = new ReentrantLock();
 
         ExecutorService threadPool = Executors.newCachedThreadPool();
 
@@ -125,7 +68,6 @@ public class MonitorTest
                             {
                                 e.printStackTrace();
                             }
-                            //System.out.println("set: " + count1.getAndIncrement());
                             return true;
                         }
                     }));
@@ -144,6 +86,7 @@ public class MonitorTest
                     {
                         public Object call()
                         {
+                            Boolean success = true;
                             long readTime = System.nanoTime();
                             int actualValue = monitor.get();
 
@@ -157,20 +100,11 @@ public class MonitorTest
                             }
                             catch (AssertionError e)
                             {
-                                System.out.println(e.toString());
-                                return false;
+                                System.out.println(e.getMessage());
+                                success = false;
                             }
 
-                            // Failure condition
-//                            if ((expectedValue != actualValue) && (readTime > lastWriteTime))
-//                            {
-//                                System.out.println("Failure: Expected " + expectedValue + ", got " + actualValue +
-//                                        " (Read occured " + (readTime - lastWriteTime) + "ns after most recent write)");
-//                            }
-
-                            //assertTrue(true);
-                            //System.out.println("get: " + count2.getAndIncrement());
-                            return true;
+                            return success;
                         }
                     });
                 }
