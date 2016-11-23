@@ -13,32 +13,32 @@ import java.util.concurrent.locks.Lock;
  */
 public class MonitorTest
 {
-    MonitorObj<Integer> monitor;
+    MonitorObj<Integer> singleCopyMonitor;
 
     @Before public void initialize()
     {
-        monitor = new SingleCopyMonitor<>(5);
+        singleCopyMonitor = new SingleCopyMonitor<>(5);
     }
 
     @Test
     public void singleReaderReadsCorrectlyAfterInit()
     {
-        assertEquals(5, (int)monitor.get());
+        assertEquals(5, (int)singleCopyMonitor.get());
     }
 
     @Test
     public void multipleReadersSingleWriter()
     {
-        runTest(1000, 1, 1000);
+        runTest(singleCopyMonitor, 1000, 1, 1000);
     }
 
     @Test
     public void multipleReadersMultipleWriters()
     {
-        runTest(1000, 1000, 1000);
+        runTest(singleCopyMonitor, 1000, 1000, 1000);
     }
 
-    private void runTest(int initialWriteValue, int numWriterThreads, int numReaderThreads)
+    private void runTest(MonitorObj<Integer> monitor, int initialWriteValue, int numWriterThreads, int numReaderThreads)
     {
         AtomicInteger val = new AtomicInteger(initialWriteValue);
         AtomicLong timestamp = new AtomicLong(0);
