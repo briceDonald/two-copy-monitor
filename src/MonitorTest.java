@@ -102,8 +102,8 @@ public class MonitorTest
 
         ExecutorService threadPool = Executors.newCachedThreadPool();
 
-        Future[] writerFutures =  new Future[numWriterThreads];
-        Future[] readerFutures = new Future[numReaderThreads];
+        Future<Boolean>[] writerFutures =  new Future[numWriterThreads];
+        Future<Boolean>[] readerFutures = new Future[numReaderThreads];
 
         Thread createWriterFutures = new Thread(new Runnable()
         {
@@ -126,7 +126,7 @@ public class MonitorTest
                                 e.printStackTrace();
                             }
                             //System.out.println("set: " + count1.getAndIncrement());
-                            return null;
+                            return true;
                         }
                     }));
                 }
@@ -150,19 +150,27 @@ public class MonitorTest
                             int expectedValue = val.get();
                             long lastWriteTime = timestamp.get();
 
-                            // Occasionally causes java.util.concurrent.ExecutionException: java.lang.AssertionError
-                            //assertTrue((expectedValue == actualValue) && (readTime > timeOfLastWrite));
+                            Boolean successCondition = (expectedValue == actualValue) && (readTime > lastWriteTime);
+                            try
+                            {
+                                assertTrue(GenerateFailureMessage(expectedValue, actualValue, readTime, lastWriteTime), successCondition);
+                            }
+                            catch (AssertionError e)
+                            {
+                                System.out.println(e.toString());
+                                return false;
+                            }
 
                             // Failure condition
-                            if ((expectedValue != actualValue) && (readTime > lastWriteTime))
-                            {
-                                System.out.println("Failure: Expected " + expectedValue + ", got " + actualValue +
-                                        " (Read occured " + (readTime - lastWriteTime) + "ns after most recent write)");
-                            }
+//                            if ((expectedValue != actualValue) && (readTime > lastWriteTime))
+//                            {
+//                                System.out.println("Failure: Expected " + expectedValue + ", got " + actualValue +
+//                                        " (Read occured " + (readTime - lastWriteTime) + "ns after most recent write)");
+//                            }
 
                             //assertTrue(true);
                             //System.out.println("get: " + count2.getAndIncrement());
-                            return null;
+                            return true;
                         }
                     });
                 }
@@ -191,7 +199,8 @@ public class MonitorTest
             for (int i = 0; i < numReaderThreads; i++)
                 try
                 {
-                    readerFutures[i].get();
+                    if(!readerFutures[i].get())
+                        fail();
                 } catch (ExecutionException e)
                 {
                     e.printStackTrace();
@@ -201,5 +210,10 @@ public class MonitorTest
         {
             e.printStackTrace();
         }
+    }
+
+    private String GenerateFailureMessage(int expectedValue, int actualValue, long readTime, long lastWriteTime)
+    {
+        return "Expected " + expectedValue + ", got " + actualValue + " (Read occurred " + (readTime - lastWriteTime) + "ns after most recent write)";
     }
 }
