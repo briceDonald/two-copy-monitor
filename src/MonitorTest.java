@@ -89,22 +89,21 @@ public class MonitorTest
     @Test
     public void blah()
     {
-        runTest(10000, 1, 1000);
+        runTest(1000, 1000, 1000);
     }
 
     private void runTest(int value, int numWriterThreads, int numReaderThreads)
     {
         AtomicInteger val = new AtomicInteger(value);
         AtomicLong timestamp = new AtomicLong(0);
+        //AtomicInteger count1 = new AtomicInteger(0);
+        //AtomicInteger count2 = new AtomicInteger(0);
         Lock lock = new ReentrantLock();
 
-        ExecutorService threadPoolWriter = Executors.newCachedThreadPool();
-        ExecutorService threadPoolReader = Executors.newCachedThreadPool();
+        ExecutorService threadPool = Executors.newCachedThreadPool();
 
-        List<Future> writerFutures = new LinkedList<Future>();
-        List<Future> readerFutures = new LinkedList<Future>();
-
-
+        Future[] writerFutures =  new Future[numWriterThreads];
+        Future[] readerFutures = new Future[numReaderThreads];
 
         Thread createWriterFutures = new Thread(new Runnable()
         {
@@ -112,7 +111,7 @@ public class MonitorTest
             {
                 for (int i = 0; i < numWriterThreads; i++)
                 {
-                    writerFutures.add(threadPoolWriter.submit(new Callable()
+                    writerFutures[i] = (threadPool.submit(new Callable()
                     {
                         public Object call()
                         {
@@ -125,9 +124,7 @@ public class MonitorTest
                             {
                                 e.printStackTrace();
                             }
-
-                            assertTrue(false);
-                            //System.out.println("set" + val.toString());
+                            //System.out.println("set: " + count1.getAndIncrement());
                             return null;
                         }
                     }));
@@ -142,23 +139,48 @@ public class MonitorTest
             {
                 for (int i = 0; i < numReaderThreads; i++)
                 {
-                    readerFutures.add(threadPoolReader.submit(new Callable()
+                    readerFutures[i] = threadPool.submit(new Callable()
                     {
                         public Object call()
                         {
-                            System.out.println("asdfasdfa");
+                            // Occasionally causes ava.util.concurrent.ExecutionException: java.lang.AssertionError
+                            assertTrue(val.get() == monitor.get() && System.nanoTime() > timestamp.get());
 
-                            //assertTrue(val.equals(monitor.get()) & System.nanoTime() > timestamp.get());
-                            System.out.println("get" + monitor.get());
+                            //assertTrue(true);
+                            //System.out.println("get: " + count2.getAndIncrement());
                             return null;
                         }
-                    }));
+                    });
                 }
             }
         });
 
         createWriterFutures.start();
         createReaderFutures.start();
+
+        try
+        {
+            createWriterFutures.join();
+            createReaderFutures.join();
+
+            // Wait for all futures to complete
+            try
+            {
+                for (int i = 0; i < numWriterThreads; i++)
+                    writerFutures[i].get();
+
+                for (int i = 0; i < numReaderThreads; i++)
+                    readerFutures[i].get();
+            }
+            catch (ExecutionException e)
+            {
+                e.printStackTrace();
+            }
+        } catch (InterruptedException e)
+        {
+            e.printStackTrace();
+        }
+
 
 //        for (int i = 0; i < numReaderThreads; i++)
 //        {
