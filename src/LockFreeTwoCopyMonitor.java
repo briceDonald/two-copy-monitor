@@ -6,12 +6,12 @@
  * @author root
  *
  */
-public class TwoCopyMonitor {
+public class LockFreeTwoCopyMonitor {
 
 	/**
 	 * 
 	 */
-	public TwoCopyMonitor() {
+	public LockFreeTwoCopyMonitor() {
 		// TODO Auto-generated constructor stub
 	}
 

@@ -1,46 +1,34 @@
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * 
- */
-
-/**
- * @author Brice Ngnigha && Abed Haque
- * @param <T> the type to operate on
+ * @brief	Implements a lock based two copy monitor
+ * 			Uses one lock and one AtomicBoolean variable
+ * @author 	Brice Ngnigha && Abed Haque
+ * @param 	<T> the type to operate on
  */
 
 public class LockBasedTwoCopyMonitor<T> {
-
-	private final int WR_EVENT = 0;
-	private final int WR_STAMP = 1;
-	private final int RD_STAMP = 2;
 	
-	private T copyA;
-	private T copyB;
-	
-	// Atomic stamped references
+	// pointers to data 
 	private T writer;
 	private T reader;
 	
 	// write event lock
-	Lock wLock;
-	Condition inWrite;
-
-	
+	private Lock wLock;
 	private AtomicBoolean write_event;
 	
+	
 	/**
-	 * @brief TwoCopyMonitor constructor
-	 * @param T initialValue, the initial value of the TwoCopyMonitor
+	 * @brief 	TwoCopyMonitor constructor
+	 * @param 	T initialValue, the initial value of the LockBasedTwoCopyMonitor
 	 */
 	public LockBasedTwoCopyMonitor( T initialValue ) {
 
 		// Sets the initial value of the monitor
-		copyA = initialValue;
-		copyB = initialValue;
+		T copyA = initialValue;
+		T copyB = initialValue;
 		
 		// Init the atomic references
 		reader = copyA;
@@ -48,75 +36,68 @@ public class LockBasedTwoCopyMonitor<T> {
 		
 		// write event lock
 		wLock = new ReentrantLock();
-		inWrite = wLock.newCondition();
-		
 		write_event = new AtomicBoolean(false);
 	}
 	
+	
 	/**
-	 *  @brief  Allows access of the value only when no cav_event is on
-	 *  @return T reader, returns the value of the monitor
-	 * @throws InterruptedException 
+	 * @brief  	If no writing is in process, reads from the reader
+	 *  		else , wait until the write completed then reads from the reader
+	 * @return 	T reader, returns the value of the monitor
+	 * @throws 	InterruptedException 
 	 *  
 	 */
 	public T get() {		
 		
-		T curRdRef = null;
-		System.out.println("-");
+		T curRdRef = reader;
 		
-		if( write_event.get() )
-		{
-//			wLock.lock();
-//			try {
-//				System.out.println(".");
-//				inWrite.await();
-//				System.out.println(".-");
-//			} catch (InterruptedException e) {
-//				// TODO Auto-generated catch block
-//				e.printStackTrace();
-//			}
+		if( !write_event.get() )
+			return curRdRef;
+		
+		synchronized(wLock) {
+			try{
+				while( write_event.get() )
+				{
+					wLock.wait();
+					curRdRef = reader;
+				}
+				   
+			} catch(InterruptedException e) {
+				e.printStackTrace();
+			}
+			
 			curRdRef = reader;
-			System.out.println("read A");
-//			wLock.unlock();
 		}
-		else
-		{
-			curRdRef = reader;
-			System.out.println("read B");
-		}
-
-		try {
-			Thread.sleep(1);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
+		
 		return curRdRef;
 	}
 	
+	
+	/**
+	 * @brief  	Exclusively write the new value of the monitor
+	 *  		inform all reader that a write operation is in progress
+	 * @return 	T reader, returns the value of the monitor
+	 *  
+	 */
 	public void set( T newVal) {
 		
-		wLock.lock();
-		
-		write_event.set(true);
-		
-//		System.out.println("1 copies A " + copyA + " B " + copyB);
-		writer = newVal;
-//		System.out.println("2 copies A " + copyA + " B " + copyB);
-		// set the writer to the new value
-		
-		write_event.set(true);
-		
-		// Swap the reader and the writer references
-		T tempReader = reader;
-		reader = writer;
-		writer = tempReader;
-		
-		System.out.println("3 copies A " + reader + " B " + writer);
-		
-		inWrite.signalAll();
-		wLock.unlock();
+		synchronized(wLock) {
+			
+			write_event.set(true);
+			
+			// set the writer to the new value
+			writer = newVal;
+			
+			// Swap the reader and the writer references
+			T tempReader = reader;
+			reader = writer;
+			writer = tempReader;
+
+			write_event.set(false);
+			
+			wLock.notify();
+			
+		}
 	}
 
 	/**
@@ -132,7 +113,7 @@ public class LockBasedTwoCopyMonitor<T> {
 		monitor.set(12);
 		System.out.println("Monitor Value2: " + monitor.get() );
 		
-		int numThreads = 100;
+		int numThreads = 500000;
 		
 		////////////////////////// Single writer
 		Thread writer = new Thread( new Runnable() {
@@ -142,6 +123,7 @@ public class LockBasedTwoCopyMonitor<T> {
 						int v = 200;
 						while( v > 0)
 							monitor.set(v--);
+						
 					}
 				}
 			);
@@ -152,9 +134,8 @@ public class LockBasedTwoCopyMonitor<T> {
 			Thread readers = new Thread( new Runnable() {
 				@Override
 				public void run() {
-					// TODO Auto-generated method stub
-					System.out.println(Thread.currentThread().getId() + " Monitor:" + monitor.get() );
-					}
+					monitor.get();
+				}
 				}
 			);
 		 
