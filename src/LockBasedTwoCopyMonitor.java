@@ -3,10 +3,10 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * @brief	Implements a lock based two copy monitor
- * 			Uses one lock and one AtomicBoolean variable
  * @author 	Brice Ngnigha && Abed Haque
  * @param 	<T> the type to operate on
+ * @brief	Implements a lock based two copy monitor
+ * 			Uses one lock and one AtomicBoolean variable
  */
 
 public class LockBasedTwoCopyMonitor<T> {
@@ -99,56 +99,4 @@ public class LockBasedTwoCopyMonitor<T> {
 			
 		}
 	}
-
-	/**
-	 * @param Test single writer multiple readers
-	 */
-	public static void main(String[] args) {
-		// TODO Auto-generated method stub
-		
-		Integer a;
-		final LockBasedTwoCopyMonitor<Integer> monitor = new LockBasedTwoCopyMonitor<Integer>(15);
-		System.out.println("TwoCopyMonitor");
-		System.out.println("Monitor Value1: " + monitor.get() );
-		monitor.set(12);
-		System.out.println("Monitor Value2: " + monitor.get() );
-		
-		int numThreads = 500000;
-		
-		////////////////////////// Single writer
-		Thread writer = new Thread( new Runnable() {
-					@Override
-					public void run() {
-						// TODO Auto-generated method stub
-						int v = 200;
-						while( v > 0)
-							monitor.set(v--);
-						
-					}
-				}
-			);
-		writer.start();
-		
-		///////////////////////// Multiple reader
-		for( int i = 0; i < numThreads; i++) {
-			Thread readers = new Thread( new Runnable() {
-				@Override
-				public void run() {
-					monitor.get();
-				}
-				}
-			);
-		 
-			readers.start();
-		}
-		
-		try {
-			writer.join();
-			System.out.println("Done");
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
-
 }
