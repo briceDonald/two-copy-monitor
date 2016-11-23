@@ -54,9 +54,9 @@ public class MonitorTest
             {
                 for (int i = 0; i < numWriterThreads; i++)
                 {
-                    writerFutures[i] = (threadPool.submit(new Callable()
+                    writerFutures[i] = (threadPool.submit(new Callable<Boolean>()
                     {
-                        public Object call()
+                        public Boolean call()
                         {
                             timestamp.set(System.nanoTime());
                             monitor.set(val.decrementAndGet());
@@ -82,9 +82,9 @@ public class MonitorTest
             {
                 for (int i = 0; i < numReaderThreads; i++)
                 {
-                    readerFutures[i] = threadPool.submit(new Callable()
+                    readerFutures[i] = threadPool.submit(new Callable<Boolean>()
                     {
-                        public Object call()
+                        public Boolean call()
                         {
                             Boolean success = true;
                             long readTime = System.nanoTime();
