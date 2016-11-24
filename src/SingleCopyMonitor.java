@@ -13,7 +13,8 @@ public class SingleCopyMonitor<T> implements MonitorObj<T>
     }
 
     public synchronized T get(){
-        return value;
+    	T val = value;
+        return val;
     }
 
     public synchronized void set(T newVal){
