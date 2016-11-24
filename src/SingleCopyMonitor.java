@@ -17,6 +17,13 @@ public class SingleCopyMonitor<T> implements MonitorObj<T>
     }
 
     public synchronized void set(T newVal){
+//        try
+//        {
+//            Thread.sleep(1);
+//        } catch (InterruptedException e)
+//        {
+//            e.printStackTrace();
+//        }
         value = newVal;
     }
 }
