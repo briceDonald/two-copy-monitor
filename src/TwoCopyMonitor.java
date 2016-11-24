@@ -12,8 +12,8 @@ public class TwoCopyMonitor<T> {
 	private final int RD_STAMP = 2;
 	
 	// Atomic stamped references
-	AtomicStampedReference<T> writer;
-	AtomicStampedReference<T> reader;
+	private AtomicStampedReference<T> writer;
+	private AtomicStampedReference<T> reader;
 
 	
 	/**
@@ -48,6 +48,7 @@ public class TwoCopyMonitor<T> {
 		return curRdRef;
 	}
 	
+	
 	/**
 	 *  @brief  Exclusively sets the value of the monitor
 	 *  @param  newVal, the new value to set the monitor
@@ -70,6 +71,7 @@ public class TwoCopyMonitor<T> {
 		swapReference();
 	}
 
+	
 	/**
 	 * @brief  Swaps the references of two AtomicStampedReferences
 	 */
@@ -82,57 +84,6 @@ public class TwoCopyMonitor<T> {
 		
 		writer.set(readerRef, WR_STAMP);
 		reader.set(writerRef, RD_STAMP);
-	}
-
-	/**
-	 * @param Test single writer multiple readers
-	 */
-	public static void main(String[] args) {
-		// TODO Auto-generated method stub
-		
-		Integer a;
-		final TwoCopyMonitor<Integer> monitor = new TwoCopyMonitor<Integer>(15);
-		System.out.println("TwoCopyMonitor");
-		System.out.println("Monitor Value1: " + monitor.get() );
-		monitor.set(12);
-		System.out.println("Monitor Value2: " + monitor.get() );
-		
-		int numThreads = 100;
-		
-		////////////////////////// Single writer
-		Thread writer = new Thread( new Runnable() {
-					@Override
-					public void run() {
-						// TODO Auto-generated method stub
-						int v = 200;
-						while( v > 0)
-							monitor.set(v--);
-					}
-				}
-			);
-		writer.start();
-		
-		///////////////////////// Multiple reader
-		for( int i = 0; i < numThreads; i++) {
-			Thread readers = new Thread( new Runnable() {
-				@Override
-				public void run() {
-					// TODO Auto-generated method stub
-					System.out.println(Thread.currentThread().getId() + " Monitor:" + monitor.get() );
-					}
-				}
-			);
-		 
-			readers.start();
-		}
-		
-		try {
-			writer.join();
-			System.out.println("Done");
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 	}
 
 }
