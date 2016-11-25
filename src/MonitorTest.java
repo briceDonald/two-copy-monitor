@@ -15,7 +15,7 @@ public class MonitorTest
 
     @Before public void initialize()
     {
-        singleCopyMonitor = new SingleCopyMonitor<TimestampedInt>(new TimestampedInt(5, System.nanoTime()));
+        singleCopyMonitor = new SingleCopyMonitor<TimestampedInt>(new TimestampedInt(5, 0));
     }
 
     @Test
@@ -39,8 +39,10 @@ public class MonitorTest
     private void runTest(MonitorObj<TimestampedInt> monitor, int initialWriteValue, int numWriterThreads, int numReaderThreads)
     {
         AtomicInteger val = new AtomicInteger(initialWriteValue);
-        AtomicLong writeTimestamp = new AtomicLong(0);
+        AtomicLong sequenceNumberTs = new AtomicLong(0);
         ReentrantLock lock = new ReentrantLock();
+
+        TimestampedInt writeObj = new TimestampedInt(val.get(), sequenceNumberTs.get());
 
         ExecutorService threadPool = Executors.newCachedThreadPool();
 
@@ -57,10 +59,10 @@ public class MonitorTest
                     {
                         public Boolean call()
                         {
+                            // lock to ensure the value and timestamp assignments are atomic
                             lock.lock();
-                            writeTimestamp.set(System.nanoTime());
-                            int valueToWrite = val.decrementAndGet();
-                            TimestampedInt writeObj = new TimestampedInt(valueToWrite, writeTimestamp.get());
+                            writeObj.value = val.decrementAndGet();
+                            writeObj.timestamp = sequenceNumberTs.incrementAndGet();
                             lock.unlock();
 
                             monitor.set(writeObj);
@@ -89,8 +91,19 @@ public class MonitorTest
                                 and when it gets read here.  The read/write timestamps will detect this
                                 race condition.  */
 
+                            // Must lock around retrieval of val and timestamp, since a writer thread can change one
+                            // before changing the other.  Removal of this lock causes instances where the expected
+                            // and actual values are the same but the timestamps are off by 1.
+                            lock.lock();
                             int expectedValue = val.get();  // the value that was most recently written to the monitor
-                            long expectedWriteTimestamp = writeTimestamp.get(); // the timestamp of the most recent write to the monitor
+                            long expectedWriteTimestamp = sequenceNumberTs.get(); // the timestamp of the most recent write to the monitor
+                            lock.unlock();
+
+                            // Ensure that the writer has written at least once before reading to avoid
+                            // false negative condition where the expected value does not match what the
+                            // object is initialized to
+                            if (expectedWriteTimestamp == 0)
+                                return true;
 
                             TimestampedInt tsInt = monitor.get();
 
@@ -108,24 +121,28 @@ public class MonitorTest
                             else if ((expectedValue == actualValue && (expectedWriteTimestamp > actualWriteTimestamp)))
                             {
                                 // The timestamp of when the read value of the monitor was set does not match the
-                                // most recent timestamp of when the monitor was written to.  This is an expected
-                                // race condition of this test and will happen occasionally.
+                                // most recent timestamp of when the monitor was written to.
 
-                                readWriteWasSuccessful = true;
+                                readWriteWasSuccessful = false;
                                 message = "A ";
                             }
                             else if ((expectedValue != actualValue && (expectedWriteTimestamp != actualWriteTimestamp)))
                             {
                                 // If the expected and actual value did not match and the timestamps don't match,
-                                // then all bets are off due to race conditions in the test?
-                                readWriteWasSuccessful = true;
+                                // it is because of a race condition in this test.  However, the difference between
+                                // the expected/actual values and timestamps should be exactly the same
+                                if ((expectedValue - actualValue) != (actualWriteTimestamp - expectedWriteTimestamp))
+                                    readWriteWasSuccessful = false;
+                                else
+                                    readWriteWasSuccessful = true;
+
                                 message = "B ";
                             }
                             else if ((expectedValue != actualValue && (expectedWriteTimestamp == actualWriteTimestamp)))
                             {
                                 // Values don't match but the timestamps do.  I have seen this happen a few times.  Not
                                 // sure if valid...
-                                readWriteWasSuccessful = true;
+                                readWriteWasSuccessful = false;
                                 message = "C ";
 
                             }
@@ -152,7 +169,7 @@ public class MonitorTest
                 }
             }
         });
-
+        
         createWriterFutures.start();
         createReaderFutures.start();
 
@@ -190,6 +207,7 @@ public class MonitorTest
 
     private String GenerateFailureMessage(int expectedValue, int actualValue, long expectedWriteTimestamp, long actualWriteTimestamp)
     {
-        return "Expected " + expectedValue + ", got " + actualValue + " (expectedWriteTimestamp - actualReadTimestamp = " + (expectedWriteTimestamp-actualWriteTimestamp) + ")";
+        return "Expected " + expectedValue + ", got " + actualValue + " (expectedWriteTimestamp(" + expectedWriteTimestamp + ") - actualReadTimestamp( " + actualWriteTimestamp
+                + ") = " + (expectedWriteTimestamp-actualWriteTimestamp) + ")";
     }
 }
