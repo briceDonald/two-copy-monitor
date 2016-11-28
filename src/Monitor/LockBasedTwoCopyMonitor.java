@@ -1,6 +1,9 @@
+package Monitor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+
+import Monitor.TimestampedInt;
 
 /**
  * @author 	Brice Ngnigha && Abed Haque
@@ -9,7 +12,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * 			Uses one lock and one AtomicBoolean variable
  */
 
-public class LockBasedTwoCopyMonitor<T> {
+public class LockBasedTwoCopyMonitor<T> implements MonitorObj<T> {
 	
 	// pointers to data 
 	private T writer;
@@ -24,8 +27,11 @@ public class LockBasedTwoCopyMonitor<T> {
 	 * @brief 	TwoCopyMonitor constructor
 	 * @param 	T initialValue, the initial value of the LockBasedTwoCopyMonitor
 	 */
-	public LockBasedTwoCopyMonitor( T initialValue ) {
+	public LockBasedTwoCopyMonitor( T initialValue, long waitT ) {
 
+		// For test only
+		waitTime = waitT;
+		
 		// Sets the initial value of the monitor
 		T copyA = initialValue;
 		T copyB = initialValue;
@@ -33,7 +39,7 @@ public class LockBasedTwoCopyMonitor<T> {
 		// Init the atomic references
 		reader = copyA;
 		writer = copyB;
-		
+
 		// write event lock
 		wLock = new ReentrantLock();
 		write_event = new AtomicBoolean(false);
@@ -81,12 +87,12 @@ public class LockBasedTwoCopyMonitor<T> {
 	 */
 	public void set( T newVal) {
 		
+		// set the writer to the new value
+		writer = newVal;
+		
 		synchronized(wLock) {
 			
 			write_event.set(true);
-			
-			// set the writer to the new value
-			writer = newVal;
 			
 			// Swap the reader and the writer references
 			T tempReader = reader;
@@ -99,4 +105,82 @@ public class LockBasedTwoCopyMonitor<T> {
 			
 		}
 	}
+	
+	
+	/******************************** test implementation ********************************/
+	long waitTime;
+    
+    public String getType()
+    {
+    	return "lockBasedTwoCopyMonitor";
+    }
+
+    private void timedExecution( long time )
+    {
+    	try
+    	{
+			Thread.sleep(waitTime);
+		}
+    	catch (InterruptedException e)
+		{
+			e.printStackTrace();
+		}
+    }
+	public synchronized T testGet( TimestampedInt readTime ) {
+		
+		T curRdRef = reader;
+		
+		if( !write_event.get() )
+		{
+			readTime.timestamp = System.nanoTime();
+			if(waitTime > 0)
+	    		timedExecution(waitTime);
+			return curRdRef;
+		}
+		
+		synchronized(wLock) {
+			try{
+				while( write_event.get() )
+				{
+					wLock.wait();
+					curRdRef = reader;
+				}
+				   
+			} catch(InterruptedException e) {
+				e.printStackTrace();
+			}
+			
+			curRdRef = reader;
+			if(waitTime > 0)
+	    		timedExecution(waitTime);
+			readTime.timestamp = System.nanoTime();
+		}
+		
+		return curRdRef;
+	}
+
+	public synchronized void testSet(T newVal, TimestampedInt writeStamp) {
+		// set the writer to the new value
+		writer = newVal;
+					
+		synchronized(wLock) {
+			
+			write_event.set(true);
+			
+			// Swap the reader and the writer references
+			T tempReader = reader;
+			reader = writer;
+			writer = tempReader;
+			
+			if(waitTime > 0)
+	    		timedExecution(waitTime);
+			
+			writeStamp.timestamp = System.nanoTime();
+			write_event.set(false);
+			wLock.notify();
+		}
+		
+		
+	}
+	
 }
