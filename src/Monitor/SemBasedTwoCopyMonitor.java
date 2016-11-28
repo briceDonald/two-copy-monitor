@@ -112,16 +112,17 @@ public class SemBasedTwoCopyMonitor<T> implements MonitorObj<T> {
 			e.printStackTrace();
 		}
     }
-	public synchronized T testGet( TimestampedInt readTime ) {
+	public T testGet( TimestampedInt readTime ) {
 		
 		T curRdRef = reader;
 		
 		while( writeSem.availablePermits() == 0 )
 		{
 			Thread.yield();
-			curRdRef = reader;
 		}
 
+		curRdRef = reader;
+		
 		if(waitTime > 0)
     		timedExecution(waitTime);
 		
@@ -129,13 +130,12 @@ public class SemBasedTwoCopyMonitor<T> implements MonitorObj<T> {
 		return curRdRef;
 	}
 
-	public synchronized void testSet(T newVal, TimestampedInt writeStamp) {
+	public void testSet(T newVal, TimestampedInt writeStamp) {
 		
 		writer = newVal;
 		try {
 			writeSem.acquire();
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		

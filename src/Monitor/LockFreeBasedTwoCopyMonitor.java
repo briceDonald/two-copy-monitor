@@ -101,7 +101,7 @@ public class LockFreeBasedTwoCopyMonitor<T> implements MonitorObj<T> {
     }
     
     
-	public synchronized T testGet( TimestampedInt readTime ) {
+	public T testGet( TimestampedInt readTime ) {
 
 		T curRdRef = reader.getReference();
 		
@@ -117,7 +117,7 @@ public class LockFreeBasedTwoCopyMonitor<T> implements MonitorObj<T> {
 	}
 	
 
-	public synchronized void testSet(T newVal, TimestampedInt writeStamp) {
+	public void testSet(T newVal, TimestampedInt writeStamp) {
 		
 		T curRdRef = reader.getReference();
 		

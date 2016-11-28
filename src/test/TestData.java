@@ -10,6 +10,9 @@ public class TestData
     
     AtomicInteger writeCount;
     AtomicInteger readCount;
+    
+    float avgRead;
+	float avgWrite;
 
     public TestData()
     {
@@ -21,24 +24,31 @@ public class TestData
     
     public void newWrite( long writeTime )
     {
+//    	if( writeTime > (3*avgWrite) )
+//    		return;
+    	
     	timeToWrite.addAndGet(writeTime);
     	writeCount.incrementAndGet();
+    	
+//    	System.out.println("----: " + writeTime + "\t Total: " + timeToWrite.get());
     }
     
     public void newRead( long readTime )
     {
+//    	if( readTime > (3*avgRead) )
+//    		return;
     	timeToRead.addAndGet(readTime);
     	readCount.incrementAndGet();
     }
     
     public String getResults()
     {
-    	float avgRead  = (float)timeToRead.get()  / readCount.get();
-    	float avgWrite = (float)timeToWrite.get() / writeCount.get();
+    	float avgRead  = timeToRead.get()  / readCount.get();
+    	float avgWrite = timeToWrite.get() / writeCount.get();
     	
 //    	System.out.println("\n");
-//    	System.out.println("Avg read time: " + avgRead  + "\tReadCount: " + readCount);
-//    	System.out.println("Avg writ time: " + avgWrite + "\tWritCount: " + writeCount);
+    	System.out.println("Avg read time: " + avgRead  + "\tReadCount: " + readCount + "\treadTime: " + timeToRead.get());
+    	System.out.println("Avg writ time: " + avgWrite + "\tWritCount: " + writeCount  + "\tWriteTime: " + timeToWrite.get());
     	return readCount.get() + ", " + avgRead + ", " + writeCount.get() + ", " + avgWrite;
     }
 }

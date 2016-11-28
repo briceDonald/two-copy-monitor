@@ -49,18 +49,20 @@ public class SingleCopyMonitor<T> implements MonitorObj<T>
     }
 
 	public synchronized T testGet( TimestampedInt readTime ) {
-		readTime.timestamp = System.nanoTime();
+		
 		T val = value;
 		if(waitTime > 0)
     		timedExecution(waitTime);
+		readTime.timestamp = System.nanoTime();
         return val;
 	}
 
 	public synchronized void testSet(T newVal, TimestampedInt writeStamp) {
 		// TODO Auto-generated method stub
 		value = newVal;
-		writeStamp.timestamp = System.nanoTime();
+		
 		if(waitTime > 0)
     		timedExecution(waitTime);
+		writeStamp.timestamp = System.nanoTime();
 	}
 }

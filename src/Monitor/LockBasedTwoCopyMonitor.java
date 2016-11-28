@@ -126,7 +126,7 @@ public class LockBasedTwoCopyMonitor<T> implements MonitorObj<T> {
 			e.printStackTrace();
 		}
     }
-	public synchronized T testGet( TimestampedInt readTime ) {
+	public T testGet( TimestampedInt readTime ) {
 		
 		T curRdRef = reader;
 		
@@ -159,7 +159,7 @@ public class LockBasedTwoCopyMonitor<T> implements MonitorObj<T> {
 		return curRdRef;
 	}
 
-	public synchronized void testSet(T newVal, TimestampedInt writeStamp) {
+	public void testSet(T newVal, TimestampedInt writeStamp) {
 		// set the writer to the new value
 		writer = newVal;
 					

@@ -2,6 +2,7 @@ package test;
 
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
+import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -51,10 +52,11 @@ public class MonitorTest
     
     public void multipleReadersMultipleWriters( MonitorObj<Integer> monitor, PrintWriter writer) throws InterruptedException
     {
-    	System.out.println(monitor.getType());
-    	for(int i = 0; i < 80; i++)
+    	System.out.println("\n" + monitor.getType());
+    	for(int i = 0; i < 1; i++)
     	{
-    		int v =  (int) Math.pow(2, ((double)i)/5);
+//    		int v =  (int) Math.pow(2, ((double)i)/5);
+    		int v =  10000;
     		writer.println( runTest(monitor, v, v, v) );
     	}
     }
@@ -94,7 +96,6 @@ public class MonitorTest
                         	writeStartTime = System.nanoTime();
                             monitor.testSet( val, timeWritten );
                             map.put(val, timeWritten.timestamp);
-                            
                             testData.newWrite( timeWritten.timestamp - writeStartTime );
                             
                             return true;
@@ -203,20 +204,25 @@ public class MonitorTest
     {
     	PrintWriter writer;
     	
-    	writer = new PrintWriter( singleCopyMonitor.getType() + ".csv" );
-        writer.println( "Readers, AvgReadTime, Writers, AvgWriteTime" );
-    	multipleReadersMultipleWriters(singleCopyMonitor, writer);
-    	writer.close();
+    	Timestamp time = new Timestamp(0);
     	
-    	writer = new PrintWriter( lockBasedCopyMonitor.getType() + ".csv" );
-        writer.println( "Readers, AvgReadTime, Writers, AvgWriteTime" );
-    	multipleReadersMultipleWriters(lockBasedCopyMonitor, writer);
-    	writer.close();
+    	System.out.println("time1 = " + time.getNanos());
+    	
+//    	writer = new PrintWriter( singleCopyMonitor.getType() + ".csv" );
+//        writer.println( "Readers, AvgReadTime, Writers, AvgWriteTime" );
+//    	multipleReadersMultipleWriters(singleCopyMonitor, writer);
+//    	writer.close();
+//    	
+//    	writer = new PrintWriter( lockBasedCopyMonitor.getType() + ".csv" );
+//        writer.println( "Readers, AvgReadTime, Writers, AvgWriteTime" );
+//    	multipleReadersMultipleWriters(lockBasedCopyMonitor, writer);
+//    	writer.close();
     	
     	writer = new PrintWriter( semBasedCopyMonitor.getType() + ".csv" );
         writer.println( "Readers, AvgReadTime, Writers, AvgWriteTime" );
     	multipleReadersMultipleWriters(semBasedCopyMonitor, writer);
     	writer.close();
+    	System.out.println("time2 = " + time.getNanos());
     	
     	writer = new PrintWriter( lockFreeBasedCopyMonitor.getType() + ".csv" );
         writer.println( "Readers, AvgReadTime, Writers, AvgWriteTime" );
