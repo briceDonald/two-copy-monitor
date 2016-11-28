@@ -8,6 +8,12 @@ public class SingleCopyMonitor<T> implements MonitorObj<T>
 {
     T value;
     long waitTime;
+    String type = "singleCopyMonitor";
+    
+    public String getType()
+    {
+    	return type;
+    }
 
     private void timedExecution( long time )
     {

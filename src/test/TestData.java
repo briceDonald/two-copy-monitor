@@ -31,7 +31,7 @@ public class TestData
     	readCount.incrementAndGet();
     }
     
-    public void showAverages()
+    public String getResults()
     {
     	float avgRead  = (float)timeToRead.get()  / readCount.get();
     	float avgWrite = (float)timeToWrite.get() / writeCount.get();
@@ -39,5 +39,6 @@ public class TestData
     	System.out.println("\n");
     	System.out.println("Avg read time: " + avgRead  + "\tReadCount: " + readCount);
     	System.out.println("Avg writ time: " + avgWrite + "\tWritCount: " + writeCount);
+    	return readCount.get() + ", " + avgRead + ", " + writeCount.get() + ", " + avgWrite;
     }
 }

@@ -1,5 +1,7 @@
 package test;
 
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -36,32 +38,18 @@ public class MonitorTest
         singleCopyMonitor = new SingleCopyMonitor<Integer>(5, 0);
     }
 
-//    @Test
-//    public void singleReaderReadsCorrectlyAfterInit()
-//    {
-//        assertEquals(5, singleCopyMonitor.get().value);
-//    }
-//
-//    @Test
-//    public void multipleReadersSingleWriter()
-//    {
-//        runTest(singleCopyMonitor, 1000, 1, 1000);
-//    }
-
     
-    @Test
-    public void multipleReadersMultipleWriters() throws InterruptedException
+    public void multipleReadersMultipleWriters( MonitorObj<Integer> monitor, PrintWriter writer) throws InterruptedException
     {
-    	for(int i = 0; i < 1; i++)
+    	for(int i = 0; i < 17; i++)
     	{
-    		runTest(singleCopyMonitor, 1000, 100, 100);
-    		System.out.println(i);
-//    		Thread.sleep(1000);
+    		int v = (int) Math.pow(2, i);
+    		writer.println( runTest(monitor, v, v, v) );
     	}
     }
 
-//    private synchronized ()
-    private TestData runTest( final MonitorObj<Integer> monitor, final int initialWriteValue, 
+
+    private String runTest( final MonitorObj<Integer> monitor, final int initialWriteValue, 
     					  final int numWriterThreads, final int numReaderThreads)
     {
     	final TestData testData = new TestData();
@@ -96,7 +84,7 @@ public class MonitorTest
                             monitor.testSet( val, timeWritten );
                             map.put(val, timeWritten.timestamp);
                             
-                            testData.newWrite(timeWritten.timestamp-writeStartTime);
+                            testData.newWrite( timeWritten.timestamp - writeStartTime );
                             
                             return true;
                         }
@@ -133,8 +121,7 @@ public class MonitorTest
 
                             readStartTime = System.nanoTime();
                             readValue = monitor.testGet(timeRead);
-                            testData.newRead(timeRead.timestamp-readStartTime);
-                            System.out.println(timeRead.timestamp-readStartTime);
+                            testData.newRead( timeRead.timestamp - readStartTime );
                             
                             // wait until the value is written to the map
                             while(!map.containsKey(readValue));
@@ -165,10 +152,9 @@ public class MonitorTest
 
         try
         {
+        	// Wait for all futures to complete
             createWriterFutures.join();
-            createReaderFutures.join();
-
-            // Wait for all futures to complete
+            createReaderFutures.join();            
 
             for (int i = 0; i < numWriterThreads; i++)
             {
@@ -186,9 +172,6 @@ public class MonitorTest
                 try
                 {
                 	assertTrue( readerFutures[i].get() );
-//                	System.out.println("id = " + i + " assert " + readerFutures[i].get());
-//                    if(!readerFutures[i].get())
-//                        fail();
                 } catch (ExecutionException e)
                 {
                     e.printStackTrace();
@@ -200,7 +183,17 @@ public class MonitorTest
             e.printStackTrace();
         }
         
-        testData.showAverages();
-        return testData;
+        return testData.getResults();
     }    
+
+
+    @Test
+    public void testMonitors() throws InterruptedException, FileNotFoundException
+    {
+        PrintWriter writer = new PrintWriter( singleCopyMonitor.getType() + ".csv" );
+        writer.println( "Readers, AvgReadTime, Writers, AvgWriteTime" );
+    	multipleReadersMultipleWriters(singleCopyMonitor, writer);
+    	writer.close();
+
+    }
 }
