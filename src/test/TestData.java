@@ -36,9 +36,9 @@ public class TestData
     	float avgRead  = (float)timeToRead.get()  / readCount.get();
     	float avgWrite = (float)timeToWrite.get() / writeCount.get();
     	
-    	System.out.println("\n");
-    	System.out.println("Avg read time: " + avgRead  + "\tReadCount: " + readCount);
-    	System.out.println("Avg writ time: " + avgWrite + "\tWritCount: " + writeCount);
+//    	System.out.println("\n");
+//    	System.out.println("Avg read time: " + avgRead  + "\tReadCount: " + readCount);
+//    	System.out.println("Avg writ time: " + avgWrite + "\tWritCount: " + writeCount);
     	return readCount.get() + ", " + avgRead + ", " + writeCount.get() + ", " + avgWrite;
     }
 }

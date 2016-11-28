@@ -19,7 +19,10 @@ import static org.junit.Assert.*;
 
 
 
+import Monitor.LockBasedTwoCopyMonitor;
+import Monitor.LockFreeBasedTwoCopyMonitor;
 import Monitor.MonitorObj;
+import Monitor.SemBasedTwoCopyMonitor;
 import Monitor.SingleCopyMonitor;
 import Monitor.TimestampedInt;
 
@@ -31,19 +34,27 @@ import Monitor.TimestampedInt;
  */
 public class MonitorTest
 {
-    MonitorObj<Integer> singleCopyMonitor;
+	MonitorObj<Integer> singleCopyMonitor;
+	MonitorObj<Integer> lockBasedCopyMonitor;
+	MonitorObj<Integer> semBasedCopyMonitor;
+	MonitorObj<Integer> lockFreeBasedCopyMonitor;
 
     @Before public void initialize()
     {
-        singleCopyMonitor = new SingleCopyMonitor<Integer>(5, 0);
+    	singleCopyMonitor = new SingleCopyMonitor<Integer>(5, 0);
+    	lockBasedCopyMonitor = new LockBasedTwoCopyMonitor<Integer>(5, 0);
+    	semBasedCopyMonitor = new SemBasedTwoCopyMonitor<Integer>(5, 0);
+    	lockFreeBasedCopyMonitor = new LockFreeBasedTwoCopyMonitor<Integer>(5, 0);
+    	
     }
 
     
     public void multipleReadersMultipleWriters( MonitorObj<Integer> monitor, PrintWriter writer) throws InterruptedException
     {
-    	for(int i = 0; i < 17; i++)
+    	System.out.println(monitor.getType());
+    	for(int i = 0; i < 80; i++)
     	{
-    		int v = (int) Math.pow(2, i);
+    		int v =  (int) Math.pow(2, ((double)i)/5);
     		writer.println( runTest(monitor, v, v, v) );
     	}
     }
@@ -190,9 +201,26 @@ public class MonitorTest
     @Test
     public void testMonitors() throws InterruptedException, FileNotFoundException
     {
-        PrintWriter writer = new PrintWriter( singleCopyMonitor.getType() + ".csv" );
+    	PrintWriter writer;
+    	
+    	writer = new PrintWriter( singleCopyMonitor.getType() + ".csv" );
         writer.println( "Readers, AvgReadTime, Writers, AvgWriteTime" );
     	multipleReadersMultipleWriters(singleCopyMonitor, writer);
+    	writer.close();
+    	
+    	writer = new PrintWriter( lockBasedCopyMonitor.getType() + ".csv" );
+        writer.println( "Readers, AvgReadTime, Writers, AvgWriteTime" );
+    	multipleReadersMultipleWriters(lockBasedCopyMonitor, writer);
+    	writer.close();
+    	
+    	writer = new PrintWriter( semBasedCopyMonitor.getType() + ".csv" );
+        writer.println( "Readers, AvgReadTime, Writers, AvgWriteTime" );
+    	multipleReadersMultipleWriters(semBasedCopyMonitor, writer);
+    	writer.close();
+    	
+    	writer = new PrintWriter( lockFreeBasedCopyMonitor.getType() + ".csv" );
+        writer.println( "Readers, AvgReadTime, Writers, AvgWriteTime" );
+    	multipleReadersMultipleWriters(lockFreeBasedCopyMonitor, writer);
     	writer.close();
 
     }

@@ -7,25 +7,6 @@ package Monitor;
 public class SingleCopyMonitor<T> implements MonitorObj<T>
 {
     T value;
-    long waitTime;
-    String type = "singleCopyMonitor";
-    
-    public String getType()
-    {
-    	return type;
-    }
-
-    private void timedExecution( long time )
-    {
-    	try
-    	{
-			Thread.sleep(waitTime);
-		}
-    	catch (InterruptedException e)
-		{
-			e.printStackTrace();
-		}
-    }
     
     public SingleCopyMonitor(T initialValue, long waitT)
     {
@@ -47,7 +28,25 @@ public class SingleCopyMonitor<T> implements MonitorObj<T>
     }
 
 
+    // test data
+    long waitTime;
+    
+    public String getType()
+    {
+    	return "singleCopyMonitor";
+    }
 
+    private void timedExecution( long time )
+    {
+    	try
+    	{
+			Thread.sleep(waitTime);
+		}
+    	catch (InterruptedException e)
+		{
+			e.printStackTrace();
+		}
+    }
 
 	public synchronized T testGet( TimestampedInt readTime ) {
 		readTime.timestamp = System.nanoTime();
