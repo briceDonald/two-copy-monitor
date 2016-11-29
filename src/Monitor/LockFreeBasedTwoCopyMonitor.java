@@ -61,10 +61,7 @@ public class LockFreeBasedTwoCopyMonitor<T> implements MonitorObj<T> {
 	public void set( T newVal) {
 		
 		T curRdRef = reader.getReference();
-		
-		// set the writer to the new value
-		writer.set(newVal, WR_EVENT);
-		
+				
 		// The reader has the WR_READ stamp, making it impossible to 
 		// other threads to write or read the value
 		while( !reader.compareAndSet(curRdRef, curRdRef, RD_STAMP, WR_EVENT) ) {
@@ -72,6 +69,9 @@ public class LockFreeBasedTwoCopyMonitor<T> implements MonitorObj<T> {
 			Thread.yield();
 		}
 		
+		// set the writer to the new value
+		writer.set(newVal, WR_EVENT);
+				
 		// Swap the reader and the writer references
 		T curWrRef = writer.getReference();
 		writer.set(reader.getReference(), WR_STAMP);
@@ -92,7 +92,7 @@ public class LockFreeBasedTwoCopyMonitor<T> implements MonitorObj<T> {
     {
     	try
     	{
-			Thread.sleep(waitTime);
+			Thread.sleep(time);
 		}
     	catch (InterruptedException e)
 		{
@@ -110,6 +110,8 @@ public class LockFreeBasedTwoCopyMonitor<T> implements MonitorObj<T> {
 			Thread.yield();
 		}
 
+//		System.out.println("..");
+		
 		if(waitTime > 0)
     		timedExecution(waitTime);
 		readTime.timestamp = System.nanoTime();
@@ -119,17 +121,7 @@ public class LockFreeBasedTwoCopyMonitor<T> implements MonitorObj<T> {
 
 	public void testSet(T newVal, TimestampedInt writeStamp) {
 
-		T curWrRef = writer.getReference();
-
-		// Only a single thread is allowed to write at a time.  This also enforces
-		// that only a single thread can swap references at a time.
-		while( !writer.compareAndSet(curWrRef, curWrRef, WR_STAMP, WR_EVENT) ) {
-			curWrRef = writer.getReference();
-			Thread.yield();
-		}
-
-		writer.set(newVal, WR_EVENT);
-
+		T curWrRef;
 		T curRdRef = reader.getReference();
 
 		// We must prevent threads from reading during a swap event, so stamp the
@@ -139,10 +131,13 @@ public class LockFreeBasedTwoCopyMonitor<T> implements MonitorObj<T> {
 			Thread.yield();
 		}
 
+		writer.set(newVal, WR_EVENT);
+
 		if(waitTime > 0)
     		timedExecution(waitTime);
 
 		// Swap the reader and the writer references.
+		curWrRef = writer.getReference();
 		reader.set(curWrRef, RD_STAMP);
 		writer.set(curRdRef, WR_STAMP);
 

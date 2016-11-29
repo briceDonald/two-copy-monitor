@@ -40,7 +40,7 @@ public class SingleCopyMonitor<T> implements MonitorObj<T>
     {
     	try
     	{
-			Thread.sleep(waitTime);
+			Thread.sleep(time);
 		}
     	catch (InterruptedException e)
 		{
@@ -53,6 +53,7 @@ public class SingleCopyMonitor<T> implements MonitorObj<T>
 		T val = value;
 		if(waitTime > 0)
     		timedExecution(waitTime);
+//		System.out.println("..");
         return val;
 	}
 
@@ -62,5 +63,7 @@ public class SingleCopyMonitor<T> implements MonitorObj<T>
 		writeStamp.timestamp = System.nanoTime();
 		if(waitTime > 0)
     		timedExecution(waitTime);
+//		timedExecution(1000);
+//		System.out.println("newval " + newVal);
 	}
 }
