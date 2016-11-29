@@ -66,7 +66,7 @@ public class MonitorTest
     	final TestData testData = new TestData();
     	
     	final Map<Integer, Long> map = Collections.synchronizedMap( new HashMap<Integer, Long>() );
-    	
+
     	map.put( monitor.get(), System.nanoTime() );
     	    	
         final Future<Boolean>[] writerFutures = new Future[numWriterThreads];
@@ -202,6 +202,11 @@ public class MonitorTest
     public void testMonitors() throws InterruptedException, FileNotFoundException
     {
     	PrintWriter writer;
+
+        writer = new PrintWriter( lockFreeBasedCopyMonitor.getType() + ".csv" );
+        writer.println( "Readers, AvgReadTime, Writers, AvgWriteTime" );
+        multipleReadersMultipleWriters(lockFreeBasedCopyMonitor, writer);
+        writer.close();
     	
     	writer = new PrintWriter( singleCopyMonitor.getType() + ".csv" );
         writer.println( "Readers, AvgReadTime, Writers, AvgWriteTime" );
@@ -217,11 +222,5 @@ public class MonitorTest
         writer.println( "Readers, AvgReadTime, Writers, AvgWriteTime" );
     	multipleReadersMultipleWriters(semBasedCopyMonitor, writer);
     	writer.close();
-    	
-    	writer = new PrintWriter( lockFreeBasedCopyMonitor.getType() + ".csv" );
-        writer.println( "Readers, AvgReadTime, Writers, AvgWriteTime" );
-    	multipleReadersMultipleWriters(lockFreeBasedCopyMonitor, writer);
-    	writer.close();
-
     }
 }

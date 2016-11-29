@@ -101,7 +101,7 @@ public class LockFreeBasedTwoCopyMonitor<T> implements MonitorObj<T> {
     }
     
     
-	public synchronized T testGet( TimestampedInt readTime ) {
+	public  T testGet( TimestampedInt readTime ) {
 
 		T curRdRef = reader.getReference();
 		
@@ -117,30 +117,36 @@ public class LockFreeBasedTwoCopyMonitor<T> implements MonitorObj<T> {
 	}
 	
 
-	public synchronized void testSet(T newVal, TimestampedInt writeStamp) {
-		
-		T curRdRef = reader.getReference();
-		
-		// set the writer to the new value first
+	public void testSet(T newVal, TimestampedInt writeStamp) {
+
+		T curWrRef = writer.getReference();
+
+		// Only a single thread is allowed to write at a time.  This also enforces
+		// that only a single thread can swap references at a time.
+		while( !writer.compareAndSet(curWrRef, curWrRef, WR_STAMP, WR_EVENT) ) {
+			curWrRef = writer.getReference();
+			Thread.yield();
+		}
+
 		writer.set(newVal, WR_EVENT);
 
-		// The reader has the WR_READ stamp, making it impossible to 
-		// other threads to write or read the value
+		T curRdRef = reader.getReference();
+
+		// We must prevent threads from reading during a swap event, so stamp the
+		// reader with WR_EVENT
 		while( !reader.compareAndSet(curRdRef, curRdRef, RD_STAMP, WR_EVENT) ) {
 			curRdRef = reader.getReference();
 			Thread.yield();
 		}
-		
+
 		if(waitTime > 0)
     		timedExecution(waitTime);
-		
-		// Swap the reader and the writer references
-		T curWrRef = writer.getReference();
-		writer.set(reader.getReference(), WR_STAMP);
+
+		// Swap the reader and the writer references.
 		reader.set(curWrRef, RD_STAMP);
-		
+		writer.set(curRdRef, WR_STAMP);
+
 		writeStamp.timestamp = System.nanoTime();
 	}
-	
 
 }
