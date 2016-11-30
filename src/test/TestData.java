@@ -31,14 +31,14 @@ public class TestData
     	readCount.incrementAndGet();
     }
     
-    public String getResults()
+    public String getResults( int readers, int writers, long maxWrTime)
     {
-    	float avgRead  = (float)timeToRead.get()  / readCount.get();
-    	float avgWrite = (float)timeToWrite.get() / writeCount.get();
+    	float avgReadTime  = (float)timeToRead.get()  / readCount.get();
+    	float avgWritTime = (float)timeToWrite.get() / writeCount.get();
     	
-//    	System.out.println("\n");
-    	System.out.println("Avg read time: " + (int)avgRead  + "\tReadCount: " + readCount);
-    	System.out.println("Avg writ time: " + (int)avgWrite + "\tWritCount: " + writeCount);
-    	return readCount.get() + ", " + avgRead + ", " + writeCount.get() + ", " + avgWrite;
+//    	System.out.println("Rdrs: " + readers + "  \tavgRd: " + (int)avgReadTime  + "  \tRdCt: " + readCount);
+//    	System.out.println("Wrts: " + writers + "  \tavgWr: " + (int)avgWritTime  + "  \tWrCt: " + writeCount + " \tmaxWrtime: " + maxWrTime);
+    	return 	readers + ", " + readCount.get()  + ", " + avgReadTime + ", " + 
+    			writers + ", " + writeCount.get() + ", " + avgWritTime + ", " + maxWrTime;
     }
 }

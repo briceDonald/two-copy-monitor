@@ -9,6 +9,4 @@ public interface MonitorObj<T>
 	T get();
     void set (T newVal);
     String getType();
-    T testGet( TimestampedInt readtime );
-    void testSet(T newVal, TimestampedInt writeTime);
 }

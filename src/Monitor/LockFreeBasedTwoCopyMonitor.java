@@ -17,19 +17,32 @@ public class LockFreeBasedTwoCopyMonitor<T> implements MonitorObj<T> {
 	private AtomicStampedReference<T> writer;
 	private AtomicStampedReference<T> reader;
 
+	long wait;
 	
 	/**
 	 * @brief TwoCopyMonitor constructor
 	 * @param T initialValue, the initial value of the TwoCopyMonitor
 	 */
-	public LockFreeBasedTwoCopyMonitor( T initialValue, long waitT ) {
-
-		// For test only
-		waitTime = waitT;
-				
+	public LockFreeBasedTwoCopyMonitor( T initialValue ) {
 		// Sets the initial value of the monitor
 		T copyA = initialValue;
 		T copyB = initialValue;
+		
+		reader = new AtomicStampedReference<T>(copyA, RD_STAMP);
+		writer = new AtomicStampedReference<T>(copyB, WR_STAMP);
+	}
+	
+	
+	/**
+	 * @brief TwoCopyMonitor constructor
+	 * @param T initialValue, the initial value of the TwoCopyMonitor
+	 */
+	public LockFreeBasedTwoCopyMonitor( T initialValue, long waitTime ) {
+		// Sets the initial value of the monitor
+		T copyA = initialValue;
+		T copyB = initialValue;
+		
+		wait = waitTime;
 		
 		reader = new AtomicStampedReference<T>(copyA, RD_STAMP);
 		writer = new AtomicStampedReference<T>(copyB, WR_STAMP);
@@ -41,16 +54,10 @@ public class LockFreeBasedTwoCopyMonitor<T> implements MonitorObj<T> {
 	 *  @return T reader, returns the value of the monitor
 	 *  
 	 */
-	public T get() {		
-		
-		T curRdRef = reader.getReference();
-		
-		while( !reader.compareAndSet(curRdRef, curRdRef, RD_STAMP, RD_STAMP) ) {
-			curRdRef = reader.getReference();
-			Thread.yield();
-		}
-
-		return curRdRef;
+	public T get() {
+		if(wait > 0)
+    		timedExecution(wait);
+		return reader.getReference();
 	}
 	
 	
@@ -75,73 +82,32 @@ public class LockFreeBasedTwoCopyMonitor<T> implements MonitorObj<T> {
 		// Swap the reader and the writer references
 		T curWrRef = writer.getReference();
 		writer.set(reader.getReference(), WR_STAMP);
+		
+		if(wait > 0)
+    		timedExecution(wait);
+		
 		reader.set(curWrRef, RD_STAMP);
 	}
 
 	
-	/******************************** test implementation ********************************/
-	long waitTime;
-    
-    public String getType()
-    {
-    	return "lockFreeBasedTwoCopyMonitor";
-    }
-    
-
-    private void timedExecution( long time )
-    {
-    	try
-    	{
+	private void timedExecution( long time )
+	{
+		try
+		{
 			Thread.sleep(time);
 		}
-    	catch (InterruptedException e)
+		catch (InterruptedException e)
 		{
-			e.printStackTrace();
 		}
-    }
-    
-    
-	public  T testGet( TimestampedInt readTime ) {
-
-		T curRdRef = reader.getReference();
-		
-		while( !reader.compareAndSet(curRdRef, curRdRef, RD_STAMP, RD_STAMP) ) {
-			curRdRef = reader.getReference();
-			Thread.yield();
-		}
-
-//		System.out.println("..");
-		
-		if(waitTime > 0)
-    		timedExecution(waitTime);
-		readTime.timestamp = System.nanoTime();
-		return curRdRef;
 	}
 	
 
-	public void testSet(T newVal, TimestampedInt writeStamp) {
-
-		T curWrRef;
-		T curRdRef = reader.getReference();
-
-		// We must prevent threads from reading during a swap event, so stamp the
-		// reader with WR_EVENT
-		while( !reader.compareAndSet(curRdRef, curRdRef, RD_STAMP, WR_EVENT) ) {
-			curRdRef = reader.getReference();
-			Thread.yield();
-		}
-
-		writer.set(newVal, WR_EVENT);
-
-		if(waitTime > 0)
-    		timedExecution(waitTime);
-
-		// Swap the reader and the writer references.
-		curWrRef = writer.getReference();
-		reader.set(curWrRef, RD_STAMP);
-		writer.set(curRdRef, WR_STAMP);
-
-		writeStamp.timestamp = System.nanoTime();
+	/**
+	 * 	@brief 	Returns the string type of this object
+	 * 
+	 */
+	public String getType() {
+		// TODO Auto-generated method stub
+		return "LockFreeBasedTwoCopy";
 	}
-
 }

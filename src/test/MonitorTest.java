@@ -12,6 +12,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 
 import org.junit.*;
@@ -42,19 +43,19 @@ public class MonitorTest
 
     @Before public void initialize()
     {
-    	singleCopyMonitor = new SingleCopyMonitor<Integer>(5, 0);
-    	lockBasedCopyMonitor = new LockBasedTwoCopyMonitor<Integer>(5, 0);
-    	semBasedCopyMonitor = new SemBasedTwoCopyMonitor<Integer>(5, 0);
-    	lockFreeBasedCopyMonitor = new LockFreeBasedTwoCopyMonitor<Integer>(5, 0);
+    	singleCopyMonitor = new SingleCopyMonitor<Integer>(5);
+    	lockBasedCopyMonitor = new LockBasedTwoCopyMonitor<Integer>(5);
+    	semBasedCopyMonitor = new SemBasedTwoCopyMonitor<Integer>(5);
+    	lockFreeBasedCopyMonitor = new LockFreeBasedTwoCopyMonitor<Integer>(5);
     }
 
     
     public void multipleReadersMultipleWriters( MonitorObj<Integer> monitor, PrintWriter writer) throws InterruptedException
     {
     	System.out.println("\n" + monitor.getType());
-    	for(int i = 0; i < 1; i++)
+    	for(int i = 1; i < 21; i++)
     	{
-    		int v = 1; // (int) Math.pow(2, ((double)i)/5);
+    		int v = i; //(int) Math.pow(2, ((double)i)/5);
     		writer.println( runTest(monitor, v, v, v) );
     	}
     }
@@ -64,14 +65,10 @@ public class MonitorTest
     					  final int numWriterThreads, final int numReaderThreads)
     {
     	final TestData testData = new TestData();
-    	
-    	final Map<Integer, Long> map = Collections.synchronizedMap( new HashMap<Integer, Long>() );
-
-    	map.put( monitor.get(), System.nanoTime() );
-    	    	
         final Future<Boolean>[] writerFutures = new Future[numWriterThreads];
         final Future<Boolean>[] readerFutures = new Future[numReaderThreads];
-
+        final AtomicLong maxWriteTime = new AtomicLong(0);
+        
         Thread createWriterFutures = new Thread(new Runnable()
         {
             public void run()
@@ -85,29 +82,22 @@ public class MonitorTest
                     {
                         public Boolean call()
                         {
-                        	int val;
-//                        	long writeStartTime;
-                        	TimestampedInt timeWritten = new TimestampedInt(0);
-//                        	
-                        	val = value.decrementAndGet();
-//                        	
-//                        	writeStartTime = System.nanoTime();
-//                            monitor.testSet( val, timeWritten );
-//                            map.put(val, timeWritten.timestamp);
-                        	
-                        	long writeStartTime = System.nanoTime();
+                        	long delta;
+                        	int val = value.decrementAndGet();                        	
+                        	long startTime = System.nanoTime();
                             long curTime = System.nanoTime();
                             
-                            
-                            while(curTime - writeStartTime < PERIOD_NANOS)
+                            while(curTime - startTime < PERIOD_NANOS)
                             {
-                          	  monitor.testSet(val, timeWritten);
-                          	  testData.newWrite( timeWritten.timestamp - curTime );
-                          	  curTime = System.nanoTime();
+                            	curTime = System.nanoTime();
+                          	  	monitor.set(val);
+                          	  	delta = System.nanoTime() - curTime;
+
+                          	  	if(maxWriteTime.get() < delta)
+                          	  		maxWriteTime.set(delta);
+                          	  	
+                          	  	testData.newWrite( delta );
                             }
-                            
-                            
-//                            testData.newWrite( timeWritten.timestamp - writeStartTime );
                             
                             return true;
                         }
@@ -135,47 +125,25 @@ public class MonitorTest
                     readerFutures[i] = readersPool.submit(new Callable<Boolean>()
                     {
                         public Boolean call()
-                        {
-                        	TimestampedInt timeRead = new TimestampedInt(0);
-//                        	long writeTime;
-                        	int readValue;
-//                        	long readStartTime;
-                            boolean success = true;
+                        {                       
+                        	long delta;
+                        	long maxReadTime = 0;
+                        	long curTime = System.nanoTime();
+                            long startTime = System.nanoTime();
+                          	                          	
+                          	while(curTime - startTime < PERIOD_NANOS)
+                          	{
+                        	  	curTime = System.nanoTime();
+                        	  	monitor.get();
+                        	  	delta = System.nanoTime() - curTime;
 
-//                          readStartTime = System.nanoTime();
-//                          readValue = monitor.testGet(timeRead);
-//                          testData.newRead( timeRead.timestamp - readStartTime );
-                            
-                          long readStartTime = System.nanoTime();
-                          long curTime = System.nanoTime();
-                          
-                          long maxReadTime = 0;
-                          
-                          while(curTime - readStartTime < PERIOD_NANOS)
-                          {
-                        	  curTime = System.nanoTime();
-                        	  readValue = monitor.testGet(timeRead);
-                        	  long delta = timeRead.timestamp - curTime;
-                        	  if( maxReadTime < delta)
-                        		  maxReadTime = delta;
-                        	  testData.newRead( delta );
-                          }
-                          
-                          System.out.println("Max read time = " + maxReadTime);
-//                          testData.newRead( timeRead.timestamp - readStartTime );
-                            
-                            
-                            // wait until the value is written to the map
-//                            while(!map.containsKey(readValue));
-//                            writeTime = map.get(readValue);
-//                            
-//                            if( timeRead.timestamp < writeTime )
-//                            {
-//                            	System.out.println("**8** " + (timeRead.timestamp-writeTime) + " " + readValue );
-//                            	success = false;
-//                            }
-                            
-                            return success;
+                        	  	if( maxReadTime < delta)
+                        		  	maxReadTime = delta;
+
+                        		testData.newRead( delta );
+                          	}
+                          	
+                          	return true;
                         }
                     });
                 }
@@ -189,43 +157,21 @@ public class MonitorTest
             }
         });
 
-        createWriterFutures.start();
         createReaderFutures.start();
+        createWriterFutures.start();
+        
 
         try
         {
         	// Wait for all futures to complete
             createWriterFutures.join();
-            createReaderFutures.join();            
-
-            for (int i = 0; i < numWriterThreads; i++)
-            {
-                try
-                {
-                    writerFutures[i].get();
-                } catch (ExecutionException e)
-                {
-                    e.printStackTrace();
-                }
-            }
-
-            for (int i = 0; i < numReaderThreads; i++)
-            {
-                try
-                {
-                	assertTrue( readerFutures[i].get() );
-                } catch (ExecutionException e)
-                {
-                    e.printStackTrace();
-                }
-            }
-
+            createReaderFutures.join();
         } catch (InterruptedException e)
         {
             e.printStackTrace();
         }
         
-        return testData.getResults();
+        return testData.getResults(numReaderThreads, numWriterThreads, maxWriteTime.get());
     }    
 
 
@@ -233,43 +179,24 @@ public class MonitorTest
     public void testMonitors() throws InterruptedException, FileNotFoundException
     {
     	PrintWriter writer;
-//    	
-//    	MonitorObj<Integer> mnt;
-////    	mnt = lockBasedCopyMonitor;
-////    	mnt = semBasedCopyMonitor;
-////    	mnt = singleCopyMonitor;
-//    	mnt = lockFreeBasedCopyMonitor;
-//    	
-//    	for (int i = 0; i < 30; i++) {
-//    		
-//			TimestampedInt t = new TimestampedInt(0);
-//			
-//			long t0 = System.nanoTime();
-//			mnt.testSet(5, t);
-//			System.out.println("Write time = " + (t.timestamp - t0) );
-//			
-//			t0 = System.nanoTime();
-//			mnt.testGet(t);
-//			System.out.println("Read  time = " + (t.timestamp - t0) );
-//		}
-
+    	String labels = "NumReaders, AvgReadTime, NumReads, NumWriters, AvgWriteTime, NumWrites, MaxWriteTime";
         writer = new PrintWriter( lockFreeBasedCopyMonitor.getType() + ".csv" );
-        writer.println( "Readers, AvgReadTime, Writers, AvgWriteTime" );
+        writer.println( labels );
         multipleReadersMultipleWriters(lockFreeBasedCopyMonitor, writer);
         writer.close();
     	
     	writer = new PrintWriter( singleCopyMonitor.getType() + ".csv" );
-        writer.println( "Readers, AvgReadTime, Writers, AvgWriteTime" );
+        writer.println( labels );
     	multipleReadersMultipleWriters(singleCopyMonitor, writer);
     	writer.close();
     	
     	writer = new PrintWriter( lockBasedCopyMonitor.getType() + ".csv" );
-        writer.println( "Readers, AvgReadTime, Writers, AvgWriteTime" );
+        writer.println( labels );
     	multipleReadersMultipleWriters(lockBasedCopyMonitor, writer);
     	writer.close();
     	
     	writer = new PrintWriter( semBasedCopyMonitor.getType() + ".csv" );
-        writer.println( "Readers, AvgReadTime, Writers, AvgWriteTime" );
+        writer.println( labels );
     	multipleReadersMultipleWriters(semBasedCopyMonitor, writer);
     	writer.close();
     }
