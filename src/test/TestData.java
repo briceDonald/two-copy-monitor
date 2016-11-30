@@ -38,7 +38,7 @@ public class TestData
     	
 //    	System.out.println("Rdrs: " + readers + "  \tavgRd: " + (int)avgReadTime  + "  \tRdCt: " + readCount);
 //    	System.out.println("Wrts: " + writers + "  \tavgWr: " + (int)avgWritTime  + "  \tWrCt: " + writeCount + " \tmaxWrtime: " + maxWrTime);
-    	return 	readers + ", " + readCount.get()  + ", " + avgReadTime + ", " + 
-    			writers + ", " + writeCount.get() + ", " + avgWritTime + ", " + maxWrTime;
+    	return 	readers + ", " + avgReadTime + ", " + readCount.get()  + ", " + 
+    			writers + ", " + avgWritTime + ", " + writeCount.get() + ", " + maxWrTime;
     }
 }
