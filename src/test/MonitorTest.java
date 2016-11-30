@@ -2,11 +2,7 @@ package test;
 
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -25,7 +21,6 @@ import Monitor.LockFreeBasedTwoCopyMonitor;
 import Monitor.MonitorObj;
 import Monitor.SemBasedTwoCopyMonitor;
 import Monitor.SingleCopyMonitor;
-import Monitor.TimestampedInt;
 
 //package test;
 
@@ -53,7 +48,7 @@ public class MonitorTest
     public void multipleReadersMultipleWriters( MonitorObj<Integer> monitor, PrintWriter writer) throws InterruptedException
     {
     	System.out.println("\n" + monitor.getType());
-    	for(int i = 1; i < 21; i++)
+    	for(int i = 1; i < 6; i++)
     	{
     		int v = i; //(int) Math.pow(2, ((double)i)/5);
     		writer.println( runTest(monitor, v, v, v) );
@@ -83,12 +78,13 @@ public class MonitorTest
                         public Boolean call()
                         {
                         	long delta;
-                        	int val = value.decrementAndGet();                        	
+                        	int val;                        	
                         	long startTime = System.nanoTime();
                             long curTime = System.nanoTime();
                             
                             while(curTime - startTime < PERIOD_NANOS)
                             {
+                            	val = value.decrementAndGet();
                             	curTime = System.nanoTime();
                           	  	monitor.set(val);
                           	  	delta = System.nanoTime() - curTime;

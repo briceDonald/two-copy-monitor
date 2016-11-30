@@ -65,8 +65,14 @@ public class SemBasedTwoCopyMonitor<T> implements MonitorObj<T> {
 	 *  @return T reader, returns the value of the monitor
 	 *  
 	 */
-	public T get() {		
-		T curRdRef = reader;
+	public T get() {
+		T curRdRef;
+		
+		while( writeSem.availablePermits() == 0 )
+		{
+			Thread.yield();
+		}
+		curRdRef = reader;
 		
 		if(wait > 0)
     		timedExecution(wait);

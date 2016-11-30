@@ -79,7 +79,11 @@ public class LockBasedTwoCopyMonitor<T> implements MonitorObj<T> {
 		T curRdRef = reader;
 		
 		if( !write_event.get() )
+		{
+			if(wait > 0)
+	    		timedExecution(wait);
 			return curRdRef;
+		}
 		
 		synchronized(wLock) {
 			try{

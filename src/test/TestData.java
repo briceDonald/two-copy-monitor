@@ -36,8 +36,8 @@ public class TestData
     	float avgReadTime  = (float)timeToRead.get()  / readCount.get();
     	float avgWritTime = (float)timeToWrite.get() / writeCount.get();
     	
-//    	System.out.println("Rdrs: " + readers + "  \tavgRd: " + (int)avgReadTime  + "  \tRdCt: " + readCount);
-//    	System.out.println("Wrts: " + writers + "  \tavgWr: " + (int)avgWritTime  + "  \tWrCt: " + writeCount + " \tmaxWrtime: " + maxWrTime);
+    	System.out.println("Rdrs: " + readers + "  \tavgRd: " + (int)avgReadTime  + "  \tRdCt: " + readCount);
+    	System.out.println("Wrts: " + writers + "  \tavgWr: " + (int)avgWritTime  + "  \tWrCt: " + writeCount + " \tmaxWrtime: " + maxWrTime);
     	return 	readers + ", " + avgReadTime + ", " + readCount.get()  + ", " + 
     			writers + ", " + avgWritTime + ", " + writeCount.get() + ", " + maxWrTime;
     }

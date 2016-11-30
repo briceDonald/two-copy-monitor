@@ -55,9 +55,10 @@ public class LockFreeBasedTwoCopyMonitor<T> implements MonitorObj<T> {
 	 *  
 	 */
 	public T get() {
+		int t[] = new int[1];
 		if(wait > 0)
     		timedExecution(wait);
-		return reader.getReference();
+		return reader.get(t);
 	}
 	
 	
@@ -68,25 +69,25 @@ public class LockFreeBasedTwoCopyMonitor<T> implements MonitorObj<T> {
 	public void set( T newVal) {
 		
 		T curRdRef = reader.getReference();
-				
-		// The reader has the WR_READ stamp, making it impossible to 
-		// other threads to write or read the value
-		while( !reader.compareAndSet(curRdRef, curRdRef, RD_STAMP, WR_EVENT) ) {
-			curRdRef = reader.getReference();
-			Thread.yield();
-		}
-		
-		// set the writer to the new value
-		writer.set(newVal, WR_EVENT);
-				
-		// Swap the reader and the writer references
 		T curWrRef = writer.getReference();
-		writer.set(reader.getReference(), WR_STAMP);
+				
+		// The writer has the WR_EVENT stamp, making it impossible to 
+		// other threads to write
+		while( !writer.compareAndSet(curWrRef, newVal, WR_STAMP, WR_EVENT) ) {
+			Thread.yield();
+			curWrRef = writer.getReference();
+		}
+						
+		// Swap the reader and the writer references
+		curRdRef = reader.getReference();
+		curWrRef = writer.getReference();
+		reader.set(curWrRef, RD_STAMP);
 		
 		if(wait > 0)
     		timedExecution(wait);
 		
-		reader.set(curWrRef, RD_STAMP);
+		// release a thread to write at last
+		writer.set(curRdRef, WR_STAMP);
 	}
 
 	
