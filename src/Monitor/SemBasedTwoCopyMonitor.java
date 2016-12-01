@@ -27,11 +27,11 @@ public class SemBasedTwoCopyMonitor<T> implements MonitorObj<T> {
 	 * @param T initialValue, the initial value of the TwoCopyMonitor
 	 */
 	public SemBasedTwoCopyMonitor( T initialValue ) {
-		// Sets the initial value of the monitor
+		// assign initial values to the two copies
 		copyA = initialValue;
 		copyB = initialValue;
 		
-		// Init the atomic references
+		// the atomic references
 		reader = copyA;
 		writer = copyB;
 		
@@ -103,6 +103,11 @@ public class SemBasedTwoCopyMonitor<T> implements MonitorObj<T> {
 		writeSem.release();
 	}
 	
+	/**
+	 * 	@brief 	Test helper function to force the setter or getter to wait
+	 *  @param  time, the time in milliseconds to wait
+	 * 
+	 */
 	private void timedExecution( long time )
 	{
 		try

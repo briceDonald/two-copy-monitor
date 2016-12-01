@@ -7,14 +7,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 
 import org.junit.*;
-import static org.junit.Assert.*;
-
-
 
 import Monitor.LockBasedTwoCopyMonitor;
 import Monitor.LockFreeBasedTwoCopyMonitor;
@@ -22,11 +18,8 @@ import Monitor.MonitorObj;
 import Monitor.SemBasedTwoCopyMonitor;
 import Monitor.SingleCopyMonitor;
 
-//package test;
-
-
 /**
- * Created by abed on 11/22/16.
+ * Created by Brice & Abed on 11/22/16.
  */
 public class MonitorTest
 {
@@ -45,12 +38,13 @@ public class MonitorTest
     }
 
     
-    public void multipleReadersMultipleWriters( int iterations, MonitorObj<Integer> monitor, PrintWriter writer) throws InterruptedException
+    public void multipleReadersMultipleWriters( int[] numThreadsArr, MonitorObj<Integer> monitor, PrintWriter writer) throws InterruptedException
     {
+    	int v;
     	System.out.println("\n" + monitor.getType());
-    	for(int i = 0; i < iterations; i++)
+    	for(int i = 0; i < numThreadsArr.length; i++)
     	{
-    		int v = i + 1;
+    		v = numThreadsArr[i];
     		writer.println( runTest(monitor, v, v) );
     	}
     }
@@ -59,6 +53,9 @@ public class MonitorTest
     private String runTest( final MonitorObj<Integer> monitor, 
     					    final int numWriterThreads, final int numReaderThreads)
     {
+    	if(numWriterThreads <= 0 || numReaderThreads <= 0)
+    		return "Bad input";
+    	
     	final TestData testData = new TestData();
         final Future<Boolean>[] writerFutures = new Future[numWriterThreads];
         final Future<Boolean>[] readerFutures = new Future[numReaderThreads];
@@ -185,27 +182,27 @@ public class MonitorTest
     @Test
     public void testMonitors() throws InterruptedException, FileNotFoundException
     {
-    	int iterations = 10;
+    	int numThreadArray[] = new int[]{1, 10, 20, 50, 100, 200};
     	PrintWriter writer;
     	String labels = "NumReaders, AvgReadTime, NumReads, NumWriters, AvgWriteTime, NumWrites, MaxWriteTime";
         writer = new PrintWriter( lockFreeBasedCopyMonitor.getType() + ".csv" );
         writer.println( labels );
-        multipleReadersMultipleWriters(iterations, lockFreeBasedCopyMonitor, writer);
+        multipleReadersMultipleWriters(numThreadArray, lockFreeBasedCopyMonitor, writer);
         writer.close();
     	
     	writer = new PrintWriter( singleCopyMonitor.getType() + ".csv" );
         writer.println( labels );
-    	multipleReadersMultipleWriters(iterations, singleCopyMonitor, writer);
+    	multipleReadersMultipleWriters(numThreadArray, singleCopyMonitor, writer);
     	writer.close();
     	
     	writer = new PrintWriter( lockBasedCopyMonitor.getType() + ".csv" );
         writer.println( labels );
-    	multipleReadersMultipleWriters(iterations, lockBasedCopyMonitor, writer);
+    	multipleReadersMultipleWriters(numThreadArray, lockBasedCopyMonitor, writer);
     	writer.close();
     	
     	writer = new PrintWriter( semBasedCopyMonitor.getType() + ".csv" );
         writer.println( labels );
-    	multipleReadersMultipleWriters(iterations, semBasedCopyMonitor, writer);
+    	multipleReadersMultipleWriters(numThreadArray, semBasedCopyMonitor, writer);
     	writer.close();
     }
 }

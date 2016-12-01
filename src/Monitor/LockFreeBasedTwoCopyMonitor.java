@@ -36,6 +36,8 @@ public class LockFreeBasedTwoCopyMonitor<T> implements MonitorObj<T> {
 	/**
 	 * @brief TwoCopyMonitor constructor
 	 * @param T initialValue, the initial value of the TwoCopyMonitor
+	 * @param waitTime, the millisecond time to wait during all accesses
+	 * 		  to setters and getters on this object. Good for testing
 	 */
 	public LockFreeBasedTwoCopyMonitor( T initialValue, long waitTime ) {
 		// Sets the initial value of the monitor
@@ -91,6 +93,11 @@ public class LockFreeBasedTwoCopyMonitor<T> implements MonitorObj<T> {
 	}
 
 	
+	/**
+	 * 	@brief 	Test helper function to force the setter or getter to wait
+	 *  @param  time, the time in milliseconds to wait
+	 * 
+	 */
 	private void timedExecution( long time )
 	{
 		try

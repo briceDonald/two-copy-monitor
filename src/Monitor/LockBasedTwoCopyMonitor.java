@@ -3,8 +3,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import Monitor.TimestampedInt;
-
 /**
  * @author 	Brice Ngnigha && Abed Haque
  * @param 	<T> the type to operate on
@@ -130,6 +128,11 @@ public class LockBasedTwoCopyMonitor<T> implements MonitorObj<T> {
 	}
 	
 	
+	/**
+	 * 	@brief 	Test helper function to force the setter or getter to wait
+	 *  @param  time, the time in milliseconds to wait
+	 * 
+	 */
 	private void timedExecution( long time )
 	{
 		try
