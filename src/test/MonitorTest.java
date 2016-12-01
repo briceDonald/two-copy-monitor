@@ -30,7 +30,7 @@ import Monitor.SingleCopyMonitor;
  */
 public class MonitorTest
 {
-	long PERIOD_NANOS = 2000000000;
+	long PERIOD_NANOS = 1000000000;
 	MonitorObj<Integer> singleCopyMonitor;
 	MonitorObj<Integer> lockBasedCopyMonitor;
 	MonitorObj<Integer> semBasedCopyMonitor;
@@ -48,10 +48,12 @@ public class MonitorTest
     public void multipleReadersMultipleWriters( MonitorObj<Integer> monitor, PrintWriter writer) throws InterruptedException
     {
     	System.out.println("\n" + monitor.getType());
-    	for(int i = 1; i < 6; i++)
+    	writer.println( runTest(monitor, 1, 2, 1) );
+    	for(int i = 1; i < 201; i++)
     	{
-    		int v = i; //(int) Math.pow(2, ((double)i)/5);
+    		int v = i * 50; //(int) Math.pow(2, ((double)i*2)/3);
     		writer.println( runTest(monitor, v, v, v) );
+    		System.out.println(i);
     	}
     }
 
@@ -68,6 +70,7 @@ public class MonitorTest
         {
             public void run()
             {
+            	final long startTime = System.nanoTime();
             	final AtomicInteger value = new AtomicInteger(initialWriteValue);
             	ExecutorService writersPool = Executors.newFixedThreadPool(numWriterThreads);
 
@@ -79,7 +82,6 @@ public class MonitorTest
                         {
                         	long delta;
                         	int val;                        	
-                        	long startTime = System.nanoTime();
                             long curTime = System.nanoTime();
                             
                             while(curTime - startTime < PERIOD_NANOS)
@@ -114,6 +116,7 @@ public class MonitorTest
         {
             public void run()
             {
+            	final long startTime = System.nanoTime();
             	ExecutorService readersPool = Executors.newFixedThreadPool(numReaderThreads);
             	
                 for (int i = 0; i < numReaderThreads; i++)
@@ -125,7 +128,6 @@ public class MonitorTest
                         	long delta;
                         	long maxReadTime = 0;
                         	long curTime = System.nanoTime();
-                            long startTime = System.nanoTime();
                           	                          	
                           	while(curTime - startTime < PERIOD_NANOS)
                           	{
