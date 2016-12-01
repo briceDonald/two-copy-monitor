@@ -1,8 +1,6 @@
 package Monitor;
 import java.util.concurrent.Semaphore;
 
-import Monitor.TimestampedInt;
-
 /**
  * @author Brice Ngnigha && Abed Haque
  * @param <T> the type to operate on
@@ -66,13 +64,13 @@ public class SemBasedTwoCopyMonitor<T> implements MonitorObj<T> {
 	 *  
 	 */
 	public T get() {
-		T curRdRef;
+		T curRdRef = reader;;
 		
 		while( writeSem.availablePermits() == 0 )
 		{
 			Thread.yield();
+			curRdRef = reader;
 		}
-		curRdRef = reader;
 		
 		if(wait > 0)
     		timedExecution(wait);
@@ -90,10 +88,7 @@ public class SemBasedTwoCopyMonitor<T> implements MonitorObj<T> {
 
 		try {
 			writeSem.acquire();
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		} catch (InterruptedException e) { }
 
 		writer = newVal;
 		

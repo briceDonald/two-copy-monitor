@@ -92,12 +92,7 @@ public class LockBasedTwoCopyMonitor<T> implements MonitorObj<T> {
 					wLock.wait();
 					curRdRef = reader;
 				}
-				   
-			} catch(InterruptedException e) {
-				e.printStackTrace();
-			}
-			
-			curRdRef = reader;
+			} catch(InterruptedException e) {}
 		}
 		
 		if(wait > 0)
@@ -116,19 +111,17 @@ public class LockBasedTwoCopyMonitor<T> implements MonitorObj<T> {
 	public void set( T newVal) {
 		
 		synchronized(wLock) {
-			
-			write_event.set(true);
-			
 			// set the writer to the new value
 			writer = newVal;
 			
 			// Swap the reader and the writer references
 			T tempReader = reader;
+			write_event.set(true);
 			reader = writer;
-			writer = tempReader;
-
 			write_event.set(false);
 			
+			writer = tempReader;
+
 			if(wait > 0)
 	    		timedExecution(wait);
 			
