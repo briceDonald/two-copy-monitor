@@ -1,18 +1,12 @@
 package Monitor;
 import java.util.concurrent.Semaphore;
 
-import Monitor.TimestampedInt;
-
 /**
  * @author Brice Ngnigha && Abed Haque
  * @param <T> the type to operate on
  */
 
 public class SemBasedTwoCopyMonitor<T> implements MonitorObj<T> {
-
-	private final int WR_EVENT = 0;
-	private final int WR_STAMP = 1;
-	private final int RD_STAMP = 2;
 	
 	private T copyA;
 	private T copyB;
@@ -23,17 +17,34 @@ public class SemBasedTwoCopyMonitor<T> implements MonitorObj<T> {
 	
 	// write event lock
 	Semaphore writeSem;
+	
+	// waiting time
+	long wait;
 
 	
 	/**
 	 * @brief TwoCopyMonitor constructor
 	 * @param T initialValue, the initial value of the TwoCopyMonitor
 	 */
-	public SemBasedTwoCopyMonitor( T initialValue, long waitT ) {
-
-		// For test only
-		waitTime = waitT;
-				
+	public SemBasedTwoCopyMonitor( T initialValue ) {
+		// assign initial values to the two copies
+		copyA = initialValue;
+		copyB = initialValue;
+		
+		// the atomic references
+		reader = copyA;
+		writer = copyB;
+		
+		// write event lock
+		writeSem = new Semaphore(1);
+	}
+	
+	/**
+	 * @brief TwoCopyMonitor constructor
+	 * @param T initialValue, the initial value of the TwoCopyMonitor
+	 */
+	public SemBasedTwoCopyMonitor( T initialValue, long waitTime ) {
+		wait = waitTime;
 		// Sets the initial value of the monitor
 		copyA = initialValue;
 		copyB = initialValue;
@@ -44,7 +55,6 @@ public class SemBasedTwoCopyMonitor<T> implements MonitorObj<T> {
 		
 		// write event lock
 		writeSem = new Semaphore(1);
-		
 	}
 	
 	
@@ -53,16 +63,18 @@ public class SemBasedTwoCopyMonitor<T> implements MonitorObj<T> {
 	 *  @return T reader, returns the value of the monitor
 	 *  
 	 */
-	public T get() {		
-		
-		T curRdRef = reader;
+	public T get() {
+		T curRdRef = reader;;
 		
 		while( writeSem.availablePermits() == 0 )
 		{
 			Thread.yield();
 			curRdRef = reader;
 		}
-
+		
+		if(wait > 0)
+    		timedExecution(wait);
+		
 		return curRdRef;
 	}
 
@@ -74,82 +86,47 @@ public class SemBasedTwoCopyMonitor<T> implements MonitorObj<T> {
 	 */
 	public void set( T newVal) {
 
-		writer = newVal;
 		try {
 			writeSem.acquire();
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		} catch (InterruptedException e) { }
 
-		// Swap the reader and the writer references
-		T tempReader = reader;
-		reader = writer;
-		writer = tempReader;
-				
-		writeSem.release();
-	}
-	
-	
-	
-	
-	/******************************** test implementation ********************************/
-	long waitTime;
-    
-    public String getType()
-    {
-    	return "semBasedTwoCopyMonitor";
-    }
-
-    private void timedExecution( long time )
-    {
-    	try
-    	{
-			Thread.sleep(waitTime);
-		}
-    	catch (InterruptedException e)
-		{
-			e.printStackTrace();
-		}
-    }
-	public synchronized T testGet( TimestampedInt readTime ) {
-		
-		T curRdRef = reader;
-		
-		while( writeSem.availablePermits() == 0 )
-		{
-			Thread.yield();
-			curRdRef = reader;
-		}
-
-		if(waitTime > 0)
-    		timedExecution(waitTime);
-		
-		readTime.timestamp = System.nanoTime();		
-		return curRdRef;
-	}
-
-	public synchronized void testSet(T newVal, TimestampedInt writeStamp) {
-		
 		writer = newVal;
-		try {
-			writeSem.acquire();
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 		
 		// Swap the reader and the writer references
 		T tempReader = reader;
 		reader = writer;
 		writer = tempReader;
 		
-		if(waitTime > 0)
-    		timedExecution(waitTime);
-		writeStamp.timestamp = System.nanoTime();
+		if(wait > 0)
+    		timedExecution(wait);
 				
 		writeSem.release();
 	}
 	
+	/**
+	 * 	@brief 	Test helper function to force the setter or getter to wait
+	 *  @param  time, the time in milliseconds to wait
+	 * 
+	 */
+	private void timedExecution( long time )
+	{
+		try
+		{
+			Thread.sleep(time);
+		}
+		catch (InterruptedException e)
+		{
+		}
+	}
+	
+	
+	/**
+	 * 	@brief 	Returns the string type of this object
+	 * 
+	 */
+	public String getType() {
+		// TODO Auto-generated method stub
+		return "SemBasedTwoCopyMonitor";
+	}
 
 }

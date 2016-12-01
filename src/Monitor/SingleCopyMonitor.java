@@ -7,60 +7,45 @@ package Monitor;
 public class SingleCopyMonitor<T> implements MonitorObj<T>
 {
     T value;
+    long wait;
     
-    public SingleCopyMonitor(T initialValue, long waitT)
+    public SingleCopyMonitor(T initialValue, long waitTime)
     {
         value = initialValue;
-        waitTime = waitT;
+        wait = waitTime;
+    }
+    
+    public SingleCopyMonitor(T initialValue)
+    {
+        value = initialValue;
     }
 
     public synchronized T get(){
     	T val = value;
-    	if(waitTime > 0)
-    		timedExecution(waitTime);
+    	if(wait > 0)
+    		timedExecution(wait);
         return val;
     }
 
     public synchronized void set(T newVal){
         value = newVal;
-        if(waitTime > 0)
-    		timedExecution(waitTime);
+        if(wait > 0)
+    		timedExecution(wait);
     }
-
-
-    // test data
-    long waitTime;
     
     public String getType()
     {
-    	return "singleCopyMonitor";
+    	return "SingleCopyMonitor";
     }
 
     private void timedExecution( long time )
     {
     	try
     	{
-			Thread.sleep(waitTime);
+			Thread.sleep(time);
 		}
     	catch (InterruptedException e)
 		{
-			e.printStackTrace();
 		}
     }
-
-	public synchronized T testGet( TimestampedInt readTime ) {
-		readTime.timestamp = System.nanoTime();
-		T val = value;
-		if(waitTime > 0)
-    		timedExecution(waitTime);
-        return val;
-	}
-
-	public synchronized void testSet(T newVal, TimestampedInt writeStamp) {
-		// TODO Auto-generated method stub
-		value = newVal;
-		writeStamp.timestamp = System.nanoTime();
-		if(waitTime > 0)
-    		timedExecution(waitTime);
-	}
 }

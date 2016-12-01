@@ -3,8 +3,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import Monitor.TimestampedInt;
-
 /**
  * @author 	Brice Ngnigha && Abed Haque
  * @param 	<T> the type to operate on
@@ -22,19 +20,40 @@ public class LockBasedTwoCopyMonitor<T> implements MonitorObj<T> {
 	private Lock wLock;
 	private AtomicBoolean write_event;
 	
+	long wait = 0;
+	
 	
 	/**
 	 * @brief 	TwoCopyMonitor constructor
 	 * @param 	T initialValue, the initial value of the LockBasedTwoCopyMonitor
 	 */
-	public LockBasedTwoCopyMonitor( T initialValue, long waitT ) {
-
-		// For test only
-		waitTime = waitT;
+	public LockBasedTwoCopyMonitor( T initialValue ) {
 		
 		// Sets the initial value of the monitor
 		T copyA = initialValue;
 		T copyB = initialValue;
+		
+		// Init the atomic references
+		reader = copyA;
+		writer = copyB;
+
+		// write event lock
+		wLock = new ReentrantLock();
+		write_event = new AtomicBoolean(false);
+	}
+	
+	
+	/**
+	 * @brief 	TwoCopyMonitor constructor
+	 * @param 	T initialValue, the initial value of the LockBasedTwoCopyMonitor
+	 */
+	public LockBasedTwoCopyMonitor( T initialValue, long waitTime ) {
+		
+		// Sets the initial value of the monitor
+		T copyA = initialValue;
+		T copyB = initialValue;
+		
+		wait = waitTime;
 		
 		// Init the atomic references
 		reader = copyA;
@@ -58,7 +77,11 @@ public class LockBasedTwoCopyMonitor<T> implements MonitorObj<T> {
 		T curRdRef = reader;
 		
 		if( !write_event.get() )
+		{
+			if(wait > 0)
+	    		timedExecution(wait);
 			return curRdRef;
+		}
 		
 		synchronized(wLock) {
 			try{
@@ -67,13 +90,11 @@ public class LockBasedTwoCopyMonitor<T> implements MonitorObj<T> {
 					wLock.wait();
 					curRdRef = reader;
 				}
-				   
-			} catch(InterruptedException e) {
-				e.printStackTrace();
-			}
-			
-			curRdRef = reader;
+			} catch(InterruptedException e) {}
 		}
+		
+		if(wait > 0)
+    		timedExecution(wait);
 		
 		return curRdRef;
 	}
@@ -87,100 +108,49 @@ public class LockBasedTwoCopyMonitor<T> implements MonitorObj<T> {
 	 */
 	public void set( T newVal) {
 		
-		// set the writer to the new value
-		writer = newVal;
-		
 		synchronized(wLock) {
-			
-			write_event.set(true);
+			// set the writer to the new value
+			writer = newVal;
 			
 			// Swap the reader and the writer references
 			T tempReader = reader;
-			reader = writer;
-			writer = tempReader;
-
-			write_event.set(false);
-			
-			wLock.notify();
-			
-		}
-	}
-	
-	
-	/******************************** test implementation ********************************/
-	long waitTime;
-    
-    public String getType()
-    {
-    	return "lockBasedTwoCopyMonitor";
-    }
-
-    private void timedExecution( long time )
-    {
-    	try
-    	{
-			Thread.sleep(waitTime);
-		}
-    	catch (InterruptedException e)
-		{
-			e.printStackTrace();
-		}
-    }
-	public synchronized T testGet( TimestampedInt readTime ) {
-		
-		T curRdRef = reader;
-		
-		if( !write_event.get() )
-		{
-			readTime.timestamp = System.nanoTime();
-			if(waitTime > 0)
-	    		timedExecution(waitTime);
-			return curRdRef;
-		}
-		
-		synchronized(wLock) {
-			try{
-				while( write_event.get() )
-				{
-					wLock.wait();
-					curRdRef = reader;
-				}
-				   
-			} catch(InterruptedException e) {
-				e.printStackTrace();
-			}
-			
-			curRdRef = reader;
-			if(waitTime > 0)
-	    		timedExecution(waitTime);
-			readTime.timestamp = System.nanoTime();
-		}
-		
-		return curRdRef;
-	}
-
-	public synchronized void testSet(T newVal, TimestampedInt writeStamp) {
-		// set the writer to the new value
-		writer = newVal;
-					
-		synchronized(wLock) {
-			
 			write_event.set(true);
-			
-			// Swap the reader and the writer references
-			T tempReader = reader;
 			reader = writer;
-			writer = tempReader;
-			
-			if(waitTime > 0)
-	    		timedExecution(waitTime);
-			
-			writeStamp.timestamp = System.nanoTime();
 			write_event.set(false);
+			
+			writer = tempReader;
+
+			if(wait > 0)
+	    		timedExecution(wait);
+			
 			wLock.notify();
 		}
-		
-		
 	}
 	
+	
+	/**
+	 * 	@brief 	Test helper function to force the setter or getter to wait
+	 *  @param  time, the time in milliseconds to wait
+	 * 
+	 */
+	private void timedExecution( long time )
+	{
+		try
+		{
+			Thread.sleep(time);
+		}
+		catch (InterruptedException e)
+		{
+		}
+	}
+	
+	
+	/**
+	 * 	@brief 	Returns the string type of this object
+	 * 
+	 */
+	public String getType()
+    {
+    	return "LockBasedTwoCopyMonitor";
+    }
 }
